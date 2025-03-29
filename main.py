@@ -1,6 +1,7 @@
 import six_DoF_simulator as simulator
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import math
 
 # ODE solver, simplest one, error prone
@@ -16,68 +17,101 @@ def forward_euler(state, derivatives, dt):
 # ----------- system definitions ----------------
 
 # system definitions
+# use defalts for now
 params = {
-    "rigging_angle_Tau": 1.3,  # rigging angle: angle between body fixed frame and parafoil chord
-    "glide_angle": 0,  # angle between earth horizontal and velocity of airflow over parafoil
-    "Rp": 0.26,  # distance between parafoil and the center of mass for the system
-    "Rc": 0.1,  # distance between CoM and payload weight location
-    "S": 3.14,  # surface area of parafoil
-    "I_zz": 0.0123,  # moment of inertia about z axis
-    "m": 5,  # mass of system
-    "flap_deflection": 0,  # deflection of flap on parafoil
-    "b": 0.5,  # mean chord length
 }
 
 # ----------- inital state definitions ----------------
 # inertial frame positions
-p_n = 0 # north position (to the left)
-p_u = 1000 # height position
-p_inital = np.array([p_n,p_u]).reshape(2,1) # inertial frame position
+p_inital = np.array([0,0,100]) # inertial frame position
 
-# Veloscities in body fixed frame. 
-U = 0.5 # veloscity forward
-W = 0.5 # velocity downwards direction
-v_inital = np.array([U,W]).reshape(2,1)
+v_inital = np.array([9,0,3])
 
-# pitch in body fixed frame
-theta = math.radians(30) # pitch angle
-q = 0.0 # angular velocity
+# euler angles of body fixed frame
+eulers = np.radians(np.array([0,30,0]))# euler angles
 
+# angular velocity of body fixed frame
+angular_velocity = np.array([0,0,0]) # angular velocity
 
 # inital state
-inital_state = [p_inital, v_inital, theta, q]
+inital_state = [p_inital, v_inital, eulers, angular_velocity]
+
+# wind vector
+wind_vector = np.array([0,0,0]) # wind vector
+
+# flap deflections
+l_flap = 0.0 # left flap angle
+r_flap = 0.0 # right flap angle
+
+#inital inputs
+inital_inputs = [[l_flap, r_flap], wind_vector]
+
 
 # -------------- simulation ----------------
 
 data = []
 
 # Time step
-dt = 0.1
+dt = 0.01
 t = 0
 
 # Run simulation
-sim = simulator.ParafoilSimulation(params, inital_state)
+sim = simulator.ParafoilSimulation_6Dof(params, inital_state, inital_inputs)
 
 state = inital_state
 for i in range(20):
+    print(f"t = {t:.3f}")
     data.append([t,sim.get_state()])
-    der = sim.derivatives()
-    sim.add_row_to_table(t)
     new_state = sim.update_state(forward_euler, dt)
     t += dt
-    state = new_state
     
 # might not be working because consideration for negitive angle of attacks are not considered. 
 
+position = [np.array(state[0]) for _, state in data]
+x_pos = [pos[0] for pos in position]
+y_pos = [pos[1] for pos in position]
+z_pos = [pos[2] for pos in position]
 
-sim.print_table()
-position = [lst[1][0] for lst in data]
-x_pos = [lst[0] for lst in position]
-y_pos = [lst[1] for lst in position]
-plt.plot(x_pos, y_pos)
-plt.xlabel('x')
-plt.ylabel('y')
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.plot(x_pos, y_pos,z_pos)
+ax.scatter(x_pos[0], y_pos[0], z_pos[0], color='red', s=50, marker='o', label='Start Point')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
 plt.title('Parafoil simulation')
 # Show the plot
 plt.show()
 
+# Unpack all states
+times = [entry[0] for entry in data]
+positions     = [entry[1][0] for entry in data]  # inertial position
+velocities    = [entry[1][1] for entry in data]  # body-frame velocity
+eulers        = [entry[1][2] for entry in data]  # Euler angles (rad)
+angular_vels  = [entry[1][3] for entry in data]  # angular velocity (rad/s)
+
+# Convert lists of vectors to arrays for easy indexing
+positions = np.array(positions)
+velocities = np.array(velocities)
+eulers = np.degrees(np.array(eulers))  # Convert radians to degrees for readability
+angular_vels = np.degrees(np.array(angular_vels))  # Also degrees/sec for clarity
+
+# Plotting utility
+def plot_state_over_time(data, labels, title, ylabel):
+    plt.figure()
+    for i in range(3):
+        plt.plot(times, data[:, i], label=labels[i])
+    plt.title(title)
+    plt.xlabel("Time (s)")
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+# Plot each group
+plot_state_over_time(positions, ['X', 'Y', 'Z'], 'Position vs Time', 'Position (m)')
+plot_state_over_time(velocities, ['u', 'v', 'w'], 'Body-frame Velocity vs Time', 'Velocity (m/s)')
+plot_state_over_time(eulers, ['Roll (ϕ)', 'Pitch (θ)', 'Yaw (ψ)'], 'Euler Angles vs Time', 'Angle (degrees)')
+plot_state_over_time(angular_vels, ['p', 'q', 'r'], 'Angular Velocity vs Time', 'Angular rate (deg/s)')
+
+plt.show()
