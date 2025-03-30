@@ -10,6 +10,40 @@ def forward_euler(state, derivatives, dt):
     new_state = [s + a for s, a in zip(state, dx)]
     return new_state
 
+def rk4(state, derivative_func, dt):
+    """
+    Runge-Kutta 4th order integrator.
+
+    - `state`: list of np.array state vectors [pos, vb, eulers, omega]
+    - `derivative_func`: function that returns derivatives given a state
+    - `dt`: timestep
+    """
+
+    def add_scaled(state, derivative, scale):
+        return [s + scale * d for s, d in zip(state, derivative)]
+
+    # k1
+    k1 = derivative_func(state)
+
+    # k2
+    state_k2 = add_scaled(state, k1, dt / 2)
+    k2 = derivative_func(state_k2)
+
+    # k3
+    state_k3 = add_scaled(state, k2, dt / 2)
+    k3 = derivative_func(state_k3)
+
+    # k4
+    state_k4 = add_scaled(state, k3, dt)
+    k4 = derivative_func(state_k4)
+
+    # Weighted average
+    new_state = [
+        s + (dt / 6) * (d1 + 2 * d2 + 2 * d3 + d4)
+        for s, d1, d2, d3, d4 in zip(state, k1, k2, k3, k4)
+    ]
+
+    return new_state
 # ------------------------------------------
 #  ----------- Simulating  ----------------
 # ------------------------------------------
@@ -58,12 +92,20 @@ t = 0
 # Run simulation
 sim = simulator.ParafoilSimulation_6Dof(params, inital_state, inital_inputs)
 
+
 state = inital_state
-for i in range(20):
-    print(f"t = {t:.3f}")
+for i in range(250):
     data.append([t,sim.get_state()])
-    new_state = sim.update_state(forward_euler, dt)
+    new_state = rk4(sim.get_state(), sim.get_solver_derivities, dt)
+    sim.set_state(new_state)
+    sim.calculate_derivitives()
     t += dt
+    if i % 10 == 0:
+        print(f"t = {t:.3f}")
+        print("  Position:", new_state[0])
+        print("  Velocity (body):", new_state[1])
+        print("  Euler angles (deg):", np.degrees(new_state[2]))
+        print("  Angular velocity (deg/s):", np.degrees(new_state[3]))
     
 # might not be working because consideration for negitive angle of attacks are not considered. 
 

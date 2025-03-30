@@ -14,7 +14,7 @@ class ParafoilSimulation_6Dof:
         self.set_state(state)
         
         # calculate the derivatives
-        self.derivatives()
+        self.calculate_derivitives()
 
     def set_inputs(self,inputs):
         """
@@ -249,7 +249,7 @@ class ParafoilSimulation_6Dof:
 
         return M_aero
     
-    def calculate_derivitives(self):
+    def calculate_derivitives(self):        
         # calculate the aero forces
         F_aero = self.calculate_aero_forces()
 
@@ -264,15 +264,15 @@ class ParafoilSimulation_6Dof:
         # calculate acceleration
         F_total = F_aero + F_g - self.m * np.dot(self.angular_vel_skew,self.vb)
         self.acc = F_total / self.m
-        print("     F_aero: ", F_aero)
-        print("     F_rot: ", np.dot(self.angular_vel_skew,self.vb))
+        #print("     F_aero: ", F_aero)
+        #print("     F_rot: ", np.dot(self.angular_vel_skew,self.vb))
 
         # calculate the aerodynamic moments
         M_aero = self.calculate_aero_moments()
-        print("     M_aero: ", M_aero)
+        #print("     M_aero: ", M_aero)
         # calculate the moments due to aerodynamic forces
         M_f_areo = np.cross(self.Rp,F_aero)
-        print("     M_f_aero: ", M_f_areo)
+        #print("     M_f_aero: ", M_f_areo)
         # calculate the anglular acceleration
         M_total = M_aero - np.dot(self.angular_vel_skew, np.dot(self.I,self.angular_vel)) + M_f_areo
         I_inv = np.linalg.inv(self.I)
@@ -332,39 +332,18 @@ class ParafoilSimulation_6Dof:
         # calculate the inertia tensor at the center of mass
         self.I = I_parafoil_at_com + I_payload
 
-    def derivatives(self):
-        # calculate the derivatives of the state
-        acc,angular_acc = self.calculate_derivitives()
-
-        # convert velocity derivities to inertial frame
-        vb = self.body_to_inertial(self.vb) # velocity in inertial frame
-        acc = self.body_to_inertial(acc)
-       
-        return [vb, acc, self.angular_vel, angular_acc]
-
-    def update_state(self,solver,dt):
-        """
-        Update the state of the simulation using the given solver and time step.
-        """
+    def get_solver_derivities(self,state):
+        print("state: ", state)
         
-        print("  Position:", self.p)
-        print("  Velocity (body):", self.vb)
-        print("  acceleration (body):", self.acc)
-        print("  Euler angles (deg):", np.degrees(self.eulers))
-        print("  Angular velocity (deg/s):", np.degrees(self.angular_vel))
-        print("  Angular acceleration (deg/s^2):", np.degrees(self.angular_acc))
-        print("  AoA:", np.degrees(self.angle_of_attack))  # if you have this function defined
-
+        old_state = self.get_state()
+        self.set_state(state)
+        # Calculate the derivatives
+        self.calculate_derivitives() 
         # get eular rates
         euler_rates = np.dot(self.T_angularVel_to_EulerRates, self.angular_vel)
-        # varibles in correct frames
-        varibles_to_be_updated = [self.p, self.vb, self.eulers, self.angular_vel]
         # deritives of the variables in correct frames
         derivatives = [self.body_to_inertial(self.vb),self.acc,euler_rates,self.angular_acc]
-        # get the new state
-        new_state = solver(varibles_to_be_updated, derivatives, dt)
-        # set the new state
-        self.set_state(new_state)
-        # calculate the derivatives
-        self.calculate_derivitives()
-        return new_state
+        # Reset the simulation state to the original
+        print("derivatives: ", derivatives)
+        self.set_state(old_state)
+        return derivatives
