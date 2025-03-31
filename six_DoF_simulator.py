@@ -76,22 +76,23 @@ class ParafoilSimulation_6Dof:
         self.va_mag = np.linalg.norm(self.va) # magnitude of the local airspeed in body fixed frame
 
         # we also need to calculate the AoA and sideslip angle (radians)
-        self.angle_of_attack = np.arctan(self.va[2]/self.va[0]) 
-        self.sideslip_angle = np.arcsin(self.va[2]/self.va_mag)
+        self.angle_of_attack = np.arctan(self.va[2]/self.va[0])
 
-        # calculate the rotation matrix from body to wind frame
-        self.R_bw = np.array([
+        self.sideslip_angle = np.arcsin(self.va[1]/np.sqrt(self.va[0]**2 + self.va[2]**2))
+
+        # calculate the rotation matrix wind to body
+        self.R_wb = np.array([
             [np.cos(self.angle_of_attack) * np.cos(self.sideslip_angle), -np.sin(self.sideslip_angle), np.cos(self.sideslip_angle) * np.sin(self.angle_of_attack)],
             [np.sin(self.angle_of_attack) * np.cos(self.sideslip_angle), np.cos(self.angle_of_attack), np.sin(self.angle_of_attack) * np.sin(self.sideslip_angle)],
             [-np.sin(self.angle_of_attack), 0, np.cos(self.angle_of_attack)]
         ])
-
+    
     def body_to_inertial(self,vector, inverse = False):
         R_bi = self.CDM.T if inverse else self.CDM
         return np.dot(R_bi, vector)
     
     def body_to_wind(self,vector, inverse = False):
-        R_bw = self.R_bw.T if inverse else self.R_bw
+        R_bw = self.R_wb if inverse else self.R_wb.T
         return np.dot(R_bw, vector)
 
     def check_set_param(self, dict, var, param_name):
@@ -127,13 +128,13 @@ class ParafoilSimulation_6Dof:
         self.check_set_param(system_params, self.t, "t") # thickness of the parafoil
         self.b = 1.35
         self.check_set_param(system_params, self.b, "b") # wingspan of the parafoil
-        self.rigging_angle = -12.0
+        self.rigging_angle = np.radians(-12.0)
         self.check_set_param(system_params, self.rigging_angle, "rigging_angle")
 
         # system parameters
         self.m = 2.4 # mass of the system
         self.check_set_param(system_params,self.m, "m") # mass of the system
-        self.Rp = np.array([0.046,0,-1.11]) # distance between parafoil and the center of mass for the system
+        self.Rp = np.array([0.0,0,-1.11]) # distance between parafoil and the center of mass for the system
         self.check_set_param(system_params,self.Rp, "Rp")
         
         self.I = np.array([[0.42,0,0.03],[0,0.4,0],[0.03,0,0.053]]) # moment of inertia of the system
@@ -154,12 +155,14 @@ class ParafoilSimulation_6Dof:
         """
         # ________________ areodynamic parameters ____________________
         # for drag
+        self.CD = 0
         self.CDo = 0.25
         self.check_set_param(system_params,self.CDo, "Cdo")
         self.CDa = 0.12
         self.check_set_param(system_params,self.CDa, "Cda") # drag coefficient
 
         # for lift
+        self.CL = 0
         self.CLo = 0.091
         self.check_set_param(system_params,self.CLo, "Cl") # lift coefficient
         self.CLa = 0.90
@@ -170,6 +173,7 @@ class ParafoilSimulation_6Dof:
         self.check_set_param(system_params,self.CYB, "CyB") # side force coefficient
 
         # for rolling
+        self.Cl = 0
         self.clB = -0.036 # coefficient due to sideslip angle
         self.check_set_param(system_params,self.clB, "clB")
         self.Clp = -0.84
@@ -180,6 +184,7 @@ class ParafoilSimulation_6Dof:
         self.check_set_param(system_params,self.Cl_asym, "Cl_asym")
 
         # for pitching
+        self.Cm = 0
         self.Cmo = 0.35 # coefficient at zero lift
         self.check_set_param(system_params,self.Cmo, "Cmo")
         self.Cma = -0.72 # coefficient due to angle of incidance
@@ -188,6 +193,7 @@ class ParafoilSimulation_6Dof:
         self.check_set_param(system_params,self.Cmq, "Cmq") # coefficient due to pitch rate
 
         # for yawing
+        self.Cn = 0
         self.CnB = -0.0015 # coefficient due to sideslip angle
         self.check_set_param(system_params,self.CnB, "CnB")
         self.Cn_p = -0.082 # coefficient due to roll rate
@@ -199,15 +205,15 @@ class ParafoilSimulation_6Dof:
             
     def calculate_areo_force_coeff(self):
         # for lifting
-        self.CL = self.CLo + self.CLa * self.angle_of_attack
+        self.CL = self.CLo + self.CLa * (self.angle_of_attack + self.rigging_angle)
 
         # for drag
-        self.CD = self.CDo + self.CDa * self.angle_of_attack
+        self.CD = self.CDo + self.CDa * (self.angle_of_attack + self.rigging_angle)
 
         # for side force
         self.CY = self.CYB * self.sideslip_angle
 
-        return [self.CL, self.CD, self.CY]
+        return [self.CD, self.CY, self.CL]
     
     def calculate_areo_moment_coeff(self):
 
@@ -227,58 +233,100 @@ class ParafoilSimulation_6Dof:
         return [self.Cl, self.Cm, self.Cn]
     
     def calculate_aero_forces(self):
-        coeffs = self.calculate_areo_force_coeff()
-        F_aero_A = 0.5 * p_density * self.va_mag**2 * self.S * np.array(coeffs)
+        self.calculate_areo_force_coeff()
+        # calculate the components
+        Fa_x = 0.5 * p_density * self.va_mag**2 * self.S * self.CD
+        Fa_y = 0.5 * p_density * self.va_mag**2 * self.S * self.CY
+        Fa_z = 0.5 * p_density * self.va_mag**2 * self.S * self.CL
 
-        #rotate forces to the body frame
-        F_areo = self.body_to_wind(F_aero_A, True)
-        return F_areo
+        F_aero_A = np.array([Fa_x,Fa_y,Fa_z])
+        #rotate forces to the body frame and negify
+        self.F_areo = - self.body_to_wind(F_aero_A, False)
+        return self.F_areo
 
     def calculate_aero_moments(self):
+        self.calculate_areo_moment_coeff()
 
-        C_m, C_l, C_n = self.calculate_areo_moment_coeff()
+        L = 0.5 * p_density * self.va_mag**2 * self.S * self.b * self.Cl
+        M = 0.5 * p_density * self.va_mag**2 * self.S * self.c * self.Cm
+        N = 0.5 * p_density * self.va_mag**2 * self.S * self.b * self.Cn
 
-        L = 0.5 * p_density * self.va_mag**2 * self.S * self.b * C_l
-        M = 0.5 * p_density * self.va_mag**2 * self.S * self.c * C_m
-        N = 0.5 * p_density * self.va_mag**2 * self.S * self.b * C_n
-
+        # since 
         M_aero_A = np.array([L,M,N])
-
         # rotate moments to the body frame
-        M_aero = self.body_to_wind(M_aero_A,True)
+        self.M_aero = self.body_to_wind(M_aero_A,True)
 
-        return M_aero
+        return self.M_aero
     
     def calculate_derivitives(self):        
         # calculate the aero forces
         F_aero = self.calculate_aero_forces()
 
         # calculate the gravity force
-        theta, phi = self.eulers[1], self.eulers[2]
-        F_g = self.m * 9.81 * np.array([
-            -np.sin(theta),
-            np.cos(theta) * np.sin(phi),
-            np.cos(theta) * np.cos(phi)
-        ])
-        
+        # theta, phi = self.eulers[1], self.eulers[2]
+
+        self.F_g = self.body_to_inertial([0,0,self.m*9.81],True)
         # calculate acceleration
-        F_total = F_aero + F_g - self.m * np.dot(self.angular_vel_skew,self.vb)
+        self.F_tishious = - self.m * np.dot(self.angular_vel_skew,self.vb)
+        F_total = F_aero + self.F_g + self.F_tishious
         self.acc = F_total / self.m
-        #print("     F_aero: ", F_aero)
-        #print("     F_rot: ", np.dot(self.angular_vel_skew,self.vb))
+
 
         # calculate the aerodynamic moments
         M_aero = self.calculate_aero_moments()
         #print("     M_aero: ", M_aero)
         # calculate the moments due to aerodynamic forces
-        M_f_areo = np.cross(self.Rp,F_aero)
+        self.M_f_areo = np.cross(self.Rp,F_aero)
         #print("     M_f_aero: ", M_f_areo)
         # calculate the anglular acceleration
-        M_total = M_aero - np.dot(self.angular_vel_skew, np.dot(self.I,self.angular_vel)) + M_f_areo
+        self.M_fictious = - np.dot(self.angular_vel_skew, np.dot(self.I,self.angular_vel))
+        M_total = M_aero + self.M_f_areo + self.M_fictious
         I_inv = np.linalg.inv(self.I)
         self.angular_acc = np.dot(I_inv,M_total)
 
         return [self.acc,self.angular_acc]
+
+    def calculate_apparent_mass_matrices(self):
+            # Correlation factors for flat parafoil
+        
+        AR = self.b/self.c
+        R = np.sqrt((self.b/2)**2 + np.linalg.norm(self.Rp)**2) # line length
+        k_A  = 0.848
+        k_B  = 0.34  # use avg or upper bound of 1.24 if needed
+        k_C  = AR / (1 + AR)
+
+        # 3D corrected factors
+        k_A_star  = 0.84 * AR / (1 + AR)
+        k_B_star  = 1.161 * AR / (1 + AR)
+        k_C_star  = 0.848
+
+        # Apparent mass (flat parafoil)
+        m_x_flat = self.rho * k_A  * (np.pi / 4) * self.t**2 * self.b
+        m_y_flat = self.rho * k_B  * (np.pi / 4) * self.t**2 * self.c
+        m_z_flat = self.rho * k_C  * (np.pi / 4) * self.c**2 * self.b
+
+        # Apparent moments of inertia (flat parafoil)
+        I_x_flat = self.rho * k_A  * (np.pi / 48) * self.c**2 * self.b**3
+        I_y_flat = self.rho * k_B  * (np.pi / 48) * self.c**4 * self.b
+        I_z_flat = self.rho * k_C  * (np.pi / 48) * self.t**2 * self.b**3
+
+                # Geometry
+        a_bar = (R - R * np.cos(e0)) / (2 * R * np.sin(e0))  # Mean curvature
+        a1 = self.c / 2
+        a2 = self.b / 2
+
+        # Apparent Masses
+        m_x = m_x_flat * (1 + (8/3) * a_bar**2)
+        m_y = (1 / a1**2) * (R**2 * m_y_flat + I_x_flat)
+        m_z = m_z_flat * np.sqrt(1 + 2 * a_bar**2 * (1 - self.t**2))
+
+        # Apparent Moments of Inertia
+        I_x = (a1**2 / a1**2) * R**2 * m_y_flat + (a2**2 / a1**2) * I_x_flat
+        I_y = I_y_flat * (1 + (np.pi / 6) * (1 + AR) * AR * a_bar**2 * self.t**2)
+        I_z = (1 + 8 * a_bar**2) * I_z_flat
+
+        I_am = np.dot(np.identity(3),[m_x,m_y,m_z])
+        I_ai = np.dot(np.identity(3),[I_x,I_y,I_z])
 
     def calculate_moments_of_inertia(self):
         """
