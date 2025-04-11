@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 p_density =  1.293 # (kg/m3) density of air at sea level
 
 class ParafoilSimulation_6Dof:
+    """
+    A class to simulate the dynamics of a parafoil system in 6 degrees of freedom.
+    The simulation includes the effects of aerodynamic forces, moments, and gravity.
+    doesnt include the effects of the payload, apparent mass"""
     def __init__(self,params,state, inputs):
         self.set_system_params(params)
         self.set_inputs(inputs)
@@ -46,16 +50,13 @@ class ParafoilSimulation_6Dof:
         """
         Update the kinematic transformations based on the current state.
         """
-        psi, theta, phi = self.eulers
-
+        phi, theta, psi = self.eulers
+        # cdm for rotation from body to inertial frame
         self.CDM =  np.array([
         [np.cos(theta) * np.cos(psi), np.sin(phi) * np.sin(theta) * np.cos(psi) - np.cos(phi) * np.sin(psi), np.cos(phi) * np.sin(theta) * np.cos(psi) + np.sin(phi) * np.sin(psi)],
         [np.cos(theta) * np.sin(psi), np.sin(phi) * np.sin(theta) * np.sin(psi) + np.cos(phi) * np.cos(psi), np.cos(phi) * np.sin(theta) * np.sin(psi) - np.sin(phi) * np.cos(psi)],
         [-np.sin(theta), np.sin(phi) * np.cos(theta), np.cos(phi) * np.cos(theta)]
         ])
-
-        if np.isclose(np.cos(theta), 0):
-            raise ValueError("Theta cannot be ±90° (or π/2 radians) due to singularity.")
 
         self.angular_vel_skew = np.array([
             [0, -self.angular_vel[2], self.angular_vel[1]],
@@ -78,7 +79,7 @@ class ParafoilSimulation_6Dof:
         # we also need to calculate the AoA and sideslip angle (radians)
         self.angle_of_attack = np.arctan2(self.va[2],self.va[0])
 
-        self.sideslip_angle = - np.arctan2(self.va[1],np.sqrt(self.va[0]**2 + self.va[2]**2))
+        self.sideslip_angle = np.arctan2(self.va[1],np.sqrt(self.va[0]**2 + self.va[2]**2))
 
         # calculate the rotation matrix wind to body
         self.R_wb = np.array([
@@ -215,14 +216,14 @@ class ParafoilSimulation_6Dof:
         self.CD = self.CDo + self.CDa * (self.angle_of_attack + self.rigging_angle)
 
         # for side force
-        self.CY = self.CYB * self.sideslip_angle
+        self.CY = - self.CYB * self.sideslip_angle
 
         return [self.CD, self.CY, self.CL]
     
     def calculate_aero_moment_coeff(self):
 
         # for rolling
-        self.Cl = self.ClB * self.sideslip_angle + + self.Cl_asym * self.delta_a + \
+        self.Cl = self.ClB * self.sideslip_angle + self.Cl_asym * self.delta_a + \
                     self.Clp * self.c/(2*self.va_mag) * self.angular_vel[0]+ \
                     self.Clr * self.c/(2*self.va_mag) * self.angular_vel[2] 
 
@@ -259,8 +260,8 @@ class ParafoilSimulation_6Dof:
         # since 
         M_aero_A = np.array([L,M,N])
         # rotate moments to the body frame
-        self.M_aero = self.body_to_wind(M_aero_A,True)
-        #self.M_aero = M_aero_A
+        # self.M_aero = self.body_to_wind(M_aero_A,True)
+        self.M_aero = M_aero_A
         return self.M_aero
     
     def calculate_derivatives(self):        
@@ -281,11 +282,11 @@ class ParafoilSimulation_6Dof:
         M_aero = self.calculate_aero_moments()
         #print("     M_aero: ", M_aero)
         # calculate the moments due to aerodynamic forces
-        self.M_f_aero = [0,0,0] # np.cross(self.Rp,F_aero)
+        self.M_f_aero = np.cross(self.Rp,F_aero)
         #print("     M_f_aero: ", M_f_aero)
         # calculate the anglular acceleration
         self.M_fictious = - np.dot(self.angular_vel_skew, np.dot(self.I, self.angular_vel))
-        M_total = M_aero + self.M_f_aero + self.M_fictious
+        M_total = M_aero + self.M_fictious
         I_inv = np.linalg.inv(self.I)
         self.angular_acc = np.dot(I_inv,M_total)
 
@@ -385,6 +386,13 @@ class ParafoilSimulation_6Dof:
         # calculate the inertia tensor at the center of mass
         self.I = I_parafoil_at_com + I_payload
 
+    def calculate_derivatives(self):
+        """
+        Calculate the derivatives of the system.
+        """
+        # calculate the derivatives
+        self.calculate_simple_derivatives()
+    
     def get_solver_derivatives(self,state):
         old_state = self.get_state()
         self.set_state(state)
@@ -392,7 +400,7 @@ class ParafoilSimulation_6Dof:
         self.calculate_derivatives() 
         # get eular rates
         euler_rates = np.dot(self.T_angularVel_to_EulerRates, self.angular_vel)
-        # deritives of the variables in correct frames
+        # deritives for the vars: [position, velocity, euler angles, angular velocity]
         derivatives = [self.body_to_inertial(self.vb),self.acc,euler_rates,self.angular_acc]
         # Reset the simulation state to the original
         self.set_state(old_state)
