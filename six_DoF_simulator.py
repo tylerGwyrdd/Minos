@@ -14,7 +14,7 @@ class ParafoilSimulation_6Dof:
         self.set_state(state)
         
         # calculate the derivatives
-        self.calculate_derivitives()
+        self.calculate_derivatives()
 
     def set_inputs(self,inputs):
         """
@@ -26,7 +26,7 @@ class ParafoilSimulation_6Dof:
         self.w = inputs[1] # wind vector in inertial frame
 
         # calculate the flap deflection angles
-        self.delta_a = self.flap_l - self.flap_r # asymmetric flap deflection
+        self.delta_a = self.flap_r - self.flap_l  # asymmetric flap deflection
         self.delta_s = 0.5*(self.flap_l + self.flap_r) # symmetric flap deflection
 
     def set_state(self, state):
@@ -76,9 +76,9 @@ class ParafoilSimulation_6Dof:
         self.va_mag = np.linalg.norm(self.va) # magnitude of the local airspeed in body fixed frame
 
         # we also need to calculate the AoA and sideslip angle (radians)
-        self.angle_of_attack = np.arctan(self.va[2]/self.va[0])
+        self.angle_of_attack = np.arctan2(self.va[2],self.va[0])
 
-        self.sideslip_angle = np.arcsin(self.va[1]/np.sqrt(self.va[0]**2 + self.va[2]**2))
+        self.sideslip_angle = - np.arctan2(self.va[1],np.sqrt(self.va[0]**2 + self.va[2]**2))
 
         # calculate the rotation matrix wind to body
         self.R_wb = np.array([
@@ -117,7 +117,7 @@ class ParafoilSimulation_6Dof:
         see: Yakimenko, Oleg A.. (2015). <i>Precision Aerial Delivery Systems - Modeling, Dynamics, and Control
         """
 
-        # areodynamic parameters, default values follow Snowflake PAD model.
+        # aerodynamic parameters, default values follow Snowflake PAD model.
         self.S = 1.0
         self.check_set_param(system_params, self.S, "S") # surface area of parafoil
         self.c = 0.75
@@ -153,29 +153,33 @@ class ParafoilSimulation_6Dof:
         self.m = self.parafoil_mass + self.payload_mass # mass of entire system
 
         """
-        # ________________ areodynamic parameters ____________________
+        # ________________ aerodynamic parameters ____________________
         # for drag
         self.CD = 0
         self.CDo = 0.25
-        self.check_set_param(system_params,self.CDo, "Cdo")
+        self.check_set_param(system_params,self.CDo, "CDo")
         self.CDa = 0.12
-        self.check_set_param(system_params,self.CDa, "Cda") # drag coefficient
+        self.check_set_param(system_params,self.CDa, "CDa") # drag coefficient
+        self.CD_sym = 0.2
+        self.check_set_param(system_params,self.CD_sym, "CD_sym")
 
         # for lift
         self.CL = 0
         self.CLo = 0.091
-        self.check_set_param(system_params,self.CLo, "Cl") # lift coefficient
+        self.check_set_param(system_params,self.CLo, "CL") # lift coefficient
         self.CLa = 0.90
-        self.check_set_param(system_params,self.CLa, "Cla") # lift coefficient changing due to angle of incidance
+        self.check_set_param(system_params,self.CLa, "CLa") # lift coefficient changing due to angle of incidance
+        self.CL_sym = 0.2
+        self.check_set_param(system_params,self.CLa, "CL_sym") # lift coefficient changing due to angle of incidance
         
         # for side force
         self.CYB = -0.23
-        self.check_set_param(system_params,self.CYB, "CyB") # side force coefficient
+        self.check_set_param(system_params,self.CYB, "CYB") # side force coefficient
 
         # for rolling
         self.Cl = 0
-        self.clB = -0.036 # coefficient due to sideslip angle
-        self.check_set_param(system_params,self.clB, "clB")
+        self.ClB = -0.036 # coefficient due to sideslip angle
+        self.check_set_param(system_params,self.ClB, "clB")
         self.Clp = -0.84
         self.check_set_param(system_params,self.Clp, "Clp")
         self.Clr = -0.082
@@ -200,12 +204,12 @@ class ParafoilSimulation_6Dof:
         self.check_set_param(system_params,self.Cn_p, "Cn_p")
         self.Cn_r = -0.27
         self.check_set_param(system_params,self.Cn_r, "Cn_r") # coefficient due to yaw rate
-        self.Cn_asym = 0.0015
+        self.Cn_asym = 0.0115
         self.check_set_param(system_params,self.Cn_asym, "Cn_asym") # coefficient due to asymmetric flap deflection           
             
-    def calculate_areo_force_coeff(self):
+    def calculate_aero_force_coeff(self):
         # for lifting
-        self.CL = self.CLo + self.CLa * (self.angle_of_attack + self.rigging_angle)
+        self.CL = self.CLo + self.CLa * (self.angle_of_attack + self.rigging_angle) + self.CL_sym*self.delta_s
 
         # for drag
         self.CD = self.CDo + self.CDa * (self.angle_of_attack + self.rigging_angle)
@@ -215,14 +219,15 @@ class ParafoilSimulation_6Dof:
 
         return [self.CD, self.CY, self.CL]
     
-    def calculate_areo_moment_coeff(self):
+    def calculate_aero_moment_coeff(self):
 
         # for rolling
-        self.Cl = self.Clp * self.c/(2*self.va_mag) * self.angular_vel[0] + \
-                    self.Clr * self.c/(2*self.va_mag) * self.angular_vel[2] + self.Cl_asym * self.delta_a
+        self.Cl = self.ClB * self.sideslip_angle + + self.Cl_asym * self.delta_a + \
+                    self.Clp * self.c/(2*self.va_mag) * self.angular_vel[0]+ \
+                    self.Clr * self.c/(2*self.va_mag) * self.angular_vel[2] 
 
         # for pitching
-        self.Cm = self.Cmo + self.Cma * self.angle_of_attack + \
+        self.Cm = self.Cmo + self.Cma * (self.angle_of_attack + self.rigging_angle) + \
                     self.Cmq * self.c/(2*self.va_mag) * self.angular_vel[1]
 
         # for yawing
@@ -233,7 +238,7 @@ class ParafoilSimulation_6Dof:
         return [self.Cl, self.Cm, self.Cn]
     
     def calculate_aero_forces(self):
-        self.calculate_areo_force_coeff()
+        self.calculate_aero_force_coeff()
         # calculate the components
         Fa_x = 0.5 * p_density * self.va_mag**2 * self.S * self.CD
         Fa_y = 0.5 * p_density * self.va_mag**2 * self.S * self.CY
@@ -241,11 +246,11 @@ class ParafoilSimulation_6Dof:
 
         F_aero_A = np.array([Fa_x,Fa_y,Fa_z])
         #rotate forces to the body frame and negify
-        self.F_areo = - self.body_to_wind(F_aero_A, False)
-        return self.F_areo
+        self.F_aero = - self.body_to_wind(F_aero_A, False)
+        return self.F_aero
 
     def calculate_aero_moments(self):
-        self.calculate_areo_moment_coeff()
+        self.calculate_aero_moment_coeff()
 
         L = 0.5 * p_density * self.va_mag**2 * self.S * self.b * self.Cl
         M = 0.5 * p_density * self.va_mag**2 * self.S * self.c * self.Cm
@@ -255,20 +260,20 @@ class ParafoilSimulation_6Dof:
         M_aero_A = np.array([L,M,N])
         # rotate moments to the body frame
         self.M_aero = self.body_to_wind(M_aero_A,True)
-
+        #self.M_aero = M_aero_A
         return self.M_aero
     
-    def calculate_derivitives(self):        
+    def calculate_derivatives(self):        
         # calculate the aero forces
         F_aero = self.calculate_aero_forces()
 
         # calculate the gravity force
         # theta, phi = self.eulers[1], self.eulers[2]
-
         self.F_g = self.body_to_inertial([0,0,self.m*9.81],True)
+
         # calculate acceleration
-        self.F_tishious = - self.m * np.dot(self.angular_vel_skew,self.vb)
-        F_total = F_aero + self.F_g + self.F_tishious
+        self.F_fictious = 0 - self.m * np.dot(self.angular_vel_skew, self.vb)
+        F_total = F_aero + self.F_g + self.F_fictious
         self.acc = F_total / self.m
 
 
@@ -276,11 +281,11 @@ class ParafoilSimulation_6Dof:
         M_aero = self.calculate_aero_moments()
         #print("     M_aero: ", M_aero)
         # calculate the moments due to aerodynamic forces
-        self.M_f_areo = np.cross(self.Rp,F_aero)
-        #print("     M_f_aero: ", M_f_areo)
+        self.M_f_aero = [0,0,0] # np.cross(self.Rp,F_aero)
+        #print("     M_f_aero: ", M_f_aero)
         # calculate the anglular acceleration
-        self.M_fictious = - np.dot(self.angular_vel_skew, np.dot(self.I,self.angular_vel))
-        M_total = M_aero + self.M_f_areo + self.M_fictious
+        self.M_fictious = - np.dot(self.angular_vel_skew, np.dot(self.I, self.angular_vel))
+        M_total = M_aero + self.M_f_aero + self.M_fictious
         I_inv = np.linalg.inv(self.I)
         self.angular_acc = np.dot(I_inv,M_total)
 
@@ -380,18 +385,15 @@ class ParafoilSimulation_6Dof:
         # calculate the inertia tensor at the center of mass
         self.I = I_parafoil_at_com + I_payload
 
-    def get_solver_derivities(self,state):
-        print("state: ", state)
-        
+    def get_solver_derivatives(self,state):
         old_state = self.get_state()
         self.set_state(state)
         # Calculate the derivatives
-        self.calculate_derivitives() 
+        self.calculate_derivatives() 
         # get eular rates
         euler_rates = np.dot(self.T_angularVel_to_EulerRates, self.angular_vel)
         # deritives of the variables in correct frames
         derivatives = [self.body_to_inertial(self.vb),self.acc,euler_rates,self.angular_acc]
         # Reset the simulation state to the original
-        print("derivatives: ", derivatives)
         self.set_state(old_state)
         return derivatives
