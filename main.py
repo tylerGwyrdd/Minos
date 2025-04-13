@@ -9,6 +9,7 @@ import six_DoF_simulator as simulator
 from matplotlib.widgets import Slider, Button
 import logging
 from utils import visualize_parafoil_pose
+from wind_estimation import simple_wind_calc, least_squares_wind_calc
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -61,6 +62,18 @@ def rk4(state, derivative_func, dt):
 
     return new_state
 
+def update_inputs(sim, time):
+    # Update the inputs based on the time or any other condition
+    # For example, you can change the flap angles based on time
+    if time < 10:
+        sim.set_inputs([[0.0, 0.0], np.array([1, 0, 0])])
+    elif time < 50:
+        sim.set_inputs([[0, 0.3], np.array([1, 0, 0])])
+    elif time < 70:
+        sim.set_inputs([[0.6, 0.0], np.array([1, 0, 0])])
+    else:
+        sim.set_inputs([[0.2, 0.2], np.array([1, 0, 0])])
+
 def run_simulation(sim, steps, dt):
 
     data = []
@@ -77,6 +90,8 @@ def run_simulation(sim, steps, dt):
         new_state = rk4(state, sim.get_solver_derivatives, dt)
         # update sim
         sim.set_state(new_state)
+        # update inputs
+        update_inputs(sim, t)
         # calculate the derivatives for the next step
         sim.calculate_derivatives()
         # update the time
@@ -144,7 +159,10 @@ def plot_selected_parameters(data, plots_to_show):
             [np.linalg.norm(entry[14]) for entry in data],
             [np.linalg.norm(entry[15]) for entry in data],
             [np.linalg.norm(entry[16]) for entry in data]
-        )), ['M_aero', 'M_f_aero', 'M_fictious'], 'Moment (Nm)')
+        )), ['M_aero', 'M_f_aero', 'M_fictious'], 'Moment (Nm)'),
+        'Airspeed Vector': (np.array([entry[17] for entry in data]), ['Vx', 'Vy', 'Vz'], 'Airspeed (m/s)'),
+        'Wind Vector': (np.array([entry[18] for entry in data]), ['Wind X', 'Wind Y', 'Wind Z'], 'Wind Velocity (m/s)'),
+        'Deflection': (np.array([entry[19] for entry in data]), ['Flap Left', 'Flap Right'], 'Deflection (rad)')
     }
 
     for title, (data_array, labels, ylabel) in parameters.items():
@@ -183,6 +201,21 @@ def main():
     # run the sim
     data = run_simulation(sim, steps, dt)
 
+    # only get data between 20 and 50 seconds
+    wind_data = [entry for entry in data if 20 < entry[0] < 45]
+    vel_b = np.array([entry[1][1] for entry in wind_data])
+    eulers = np.array([entry[1][2] for entry in wind_data])
+    vel_inertial =[]
+    for i, vel in enumerate(vel_b):
+        R = sim.get_CDM(eulers[i])
+        vel_inertial.append(R @ vel)
+    vel_inertial = np.array(vel_inertial)  # Now it's a proper 2D array
+    wind_estimate = least_squares_wind_calc(vel_inertial)
+    print(f"Wind Estimate: {wind_estimate}")
+
+    # Convert data to numpy array for easier manipulation
+
+
     plots_to_show = {
         'Position': True,
         'Velocity': True,
@@ -196,7 +229,9 @@ def main():
         'Moment Coefficients': True,
         'Forces': True,
         'Moments': True,
-        'Wind Vector': False
+        'Airspeed Vector': True,
+        'Wind Vector': True,
+        'Deflection': True
     }
 
     plot_selected_parameters(data, plots_to_show)

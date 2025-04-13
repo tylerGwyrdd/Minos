@@ -46,30 +46,55 @@ class ParafoilSimulation_6Dof:
     def get_state(self):
         return [self.p, self.vb, self.eulers, self.angular_vel]
 
-    def update_kinematic_transforations(self):
+    def get_CDM(self, euler_angles = None):
         """
-        Update the kinematic transformations based on the current state.
-        """
-        phi, theta, psi = self.eulers
-        # cdm for rotation from body to inertial frame
-        self.CDM =  np.array([
+        get the rotation matrix from body to inertial frame"""
+        if euler_angles is None:
+            phi, theta, psi = self.eulers
+        else:
+            phi, theta, psi = euler_angles
+        return np.array([
         [np.cos(theta) * np.cos(psi), np.sin(phi) * np.sin(theta) * np.cos(psi) - np.cos(phi) * np.sin(psi), np.cos(phi) * np.sin(theta) * np.cos(psi) + np.sin(phi) * np.sin(psi)],
         [np.cos(theta) * np.sin(psi), np.sin(phi) * np.sin(theta) * np.sin(psi) + np.cos(phi) * np.cos(psi), np.cos(phi) * np.sin(theta) * np.sin(psi) - np.sin(phi) * np.cos(psi)],
         [-np.sin(theta), np.sin(phi) * np.cos(theta), np.cos(phi) * np.cos(theta)]
         ])
-
-        self.angular_vel_skew = np.array([
-            [0, -self.angular_vel[2], self.angular_vel[1]],
-            [self.angular_vel[2], 0, -self.angular_vel[0]],
-            [-self.angular_vel[1], self.angular_vel[0], 0]
+    
+    def get_angular_vel_skew(self, angular_vel = None):
+        """
+        get the skew symmetric matrix of the angular velocity vector.
+        """
+        if angular_vel is None:
+            p, q, r = self.angular_vel
+        else:
+            p, q, r = angular_vel
+        return np.array([
+            [0, -r, q],
+            [r, 0, -p],
+            [-q, p, 0]
         ])
-
-        # calculate the transformation matrix from angular velocity to euler rates
-        self.T_angularVel_to_EulerRates = np.array([
+    
+    def get_angular_vel_to_EulerRates_matrix(self, euler_angles = None):
+        """
+        get the transformation matrix from angular velocity to euler rates.
+        """
+        if euler_angles is None:
+            phi, theta, psi = self.eulers
+        else:
+            phi, theta, psi = euler_angles
+        
+        return np.array([
             [1, np.sin(phi) * np.tan(theta), np.cos(phi) * np.tan(theta)],
             [0, np.cos(phi), -np.sin(phi)],
             [0, np.sin(phi) / np.cos(theta), np.cos(phi) / np.cos(theta)]
         ])
+    
+    def update_kinematic_transforations(self, euler_angles = None, angular_vel = None):
+        """
+        Update the kinematic transformations based on the current state.
+        """
+        self.CDM = self.get_CDM(euler_angles)
+        self.angular_vel_skew = self.get_angular_vel_skew(angular_vel)
+        self.T_angularVel_to_EulerRates = self.get_angular_vel_to_EulerRates_matrix(euler_angles)
 
     def update_wind_transformations(self):
         # calculate local airspeed in body fixed frame
@@ -260,7 +285,7 @@ class ParafoilSimulation_6Dof:
         # since 
         M_aero_A = np.array([L,M,N])
         # rotate moments to the body frame
-        # self.M_aero = self.body_to_wind(M_aero_A,True)
+        self.M_aero = self.body_to_wind(M_aero_A,True)
         self.M_aero = M_aero_A
         return self.M_aero
     
@@ -385,13 +410,6 @@ class ParafoilSimulation_6Dof:
 
         # calculate the inertia tensor at the center of mass
         self.I = I_parafoil_at_com + I_payload
-
-    def calculate_derivatives(self):
-        """
-        Calculate the derivatives of the system.
-        """
-        # calculate the derivatives
-        self.calculate_simple_derivatives()
     
     def get_solver_derivatives(self,state):
         old_state = self.get_state()
