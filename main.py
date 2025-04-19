@@ -175,6 +175,32 @@ def plot_selected_parameters(data, plots_to_show):
     if plots_to_show.get('Moments', False):
         plot_force_moment_components_shared(times, data, [14, 15, 16], ['M_aero', 'M_f_aero', 'M_fictious'], "Moment", 'Moment (Nm)')
 
+def single_step(sim, flap_inputs, wind_vec, dt):
+    import numpy as np
+    from main import rk4
+
+    # Set inputs
+    sim.set_inputs([flap_inputs, wind_vec])
+
+    # Get current state
+    curr_state = sim.get_state()
+
+    # RK4 update
+    new_state = rk4(curr_state, sim.get_solver_derivatives, dt)
+
+    # Set new state
+    sim.set_state(new_state)
+    sim.calculate_derivatives()
+
+    # Extract heading and altitude
+    eulers = sim.get_state()[2]  # roll, pitch, yaw (radians)
+    yaw = np.degrees(eulers[2]) % 360
+    pos = sim.get_state()[0]
+    alt = pos[2]  # NED Z, negative altitude
+
+    return yaw, alt
+
+
 def main():
     # first we need an initial state to base the sim off
     # Note sim uses NED Coordinate system, so Z is up
