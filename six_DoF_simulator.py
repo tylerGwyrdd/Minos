@@ -45,7 +45,10 @@ class ParafoilSimulation_6Dof:
 
     def get_state(self):
         return [self.p, self.vb, self.eulers, self.angular_vel]
-
+    
+    def get_inertial_state(self):
+        return[self.p, self.body_to_inertial(self.vb), self.eulers, self.get_euler_rates()]
+    
     def get_CDM(self, euler_angles = None):
         """
         get the rotation matrix from body to inertial frame"""
@@ -58,6 +61,14 @@ class ParafoilSimulation_6Dof:
         [np.cos(theta) * np.sin(psi), np.sin(phi) * np.sin(theta) * np.sin(psi) + np.cos(phi) * np.cos(psi), np.cos(phi) * np.sin(theta) * np.sin(psi) - np.sin(phi) * np.cos(psi)],
         [-np.sin(theta), np.sin(phi) * np.cos(theta), np.cos(phi) * np.cos(theta)]
         ])
+    
+    def get_euler_rates(self, angular_vel = None):
+        """
+        get the euler rates from the angular velocity vector.
+        """
+        if angular_vel is None:
+            angular_vel = self.angular_vel
+        return np.dot(self.T_angularVel_to_EulerRates, angular_vel)
     
     def get_angular_vel_skew(self, angular_vel = None):
         """
@@ -99,6 +110,7 @@ class ParafoilSimulation_6Dof:
     def update_wind_transformations(self):
         # calculate local airspeed in body fixed frame
         self.va = self.vb - self.body_to_inertial(self.w, True) # local airspeed in body fixed frame
+        
         self.va_mag = np.linalg.norm(self.va) # magnitude of the local airspeed in body fixed frame
 
         # we also need to calculate the AoA and sideslip angle (radians)

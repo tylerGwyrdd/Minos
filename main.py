@@ -9,7 +9,10 @@ import six_DoF_simulator as simulator
 from matplotlib.widgets import Slider, Button
 import logging
 from utils import visualize_parafoil_pose
-from wind_estimation import simple_wind_calc, least_squares_wind_calc
+from utils import rk4 
+from guidance import T_approach
+from guidance import Control
+
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -20,78 +23,36 @@ class State:
     eulers: np.ndarray
     omega: np.ndarray
 
-# ODE solver, simplest one, error prone
-def forward_euler(state, derivatives, dt):
-    dx = [dt * der for der in derivatives]
-    new_state = [s + a for s, a in zip(state, dx)]
-    return new_state
 
-# RK4 is a more accurate ODE solver
-def rk4(state, derivative_func, dt):
-    """
-    Runge-Kutta 4th order integrator.
-
-    - `state`: list of np.array state vectors [pos, vb, eulers, omega]
-    - `derivative_func`: function that returns derivatives given a state
-    - `dt`: timestep
-    """
-
-    def add_scaled(state, derivative, scale):
-        return [s + scale * d for s, d in zip(state, derivative)]
-
-    # k1
-    k1 = derivative_func(state)
-
-    # k2
-    state_k2 = add_scaled(state, k1, dt / 2)
-    k2 = derivative_func(state_k2)
-
-    # k3
-    state_k3 = add_scaled(state, k2, dt / 2)
-    k3 = derivative_func(state_k3)
-
-    # k4
-    state_k4 = add_scaled(state, k3, dt)
-    k4 = derivative_func(state_k4)
-
-    # Weighted average
-    new_state = [
-        s + (dt / 6) * (d1 + 2 * d2 + 2 * d3 + d4)
-        for s, d1, d2, d3, d4 in zip(state, k1, k2, k3, k4)
-    ]
-
-    return new_state
-
-def update_inputs(sim, time):
-    # Update the inputs based on the time or any other condition
-    # For example, you can change the flap angles based on time
-    if time < 10:
-        sim.set_inputs([[0.0, 0.0], np.array([1, 0, 0])])
-    elif time < 50:
-        sim.set_inputs([[0, 0.3], np.array([1, 0, 0])])
-    elif time < 70:
-        sim.set_inputs([[0.6, 0.0], np.array([1, 0, 0])])
-    else:
-        sim.set_inputs([[0.2, 0.2], np.array([1, 0, 0])])
-
-def run_simulation(sim, steps, dt):
-
+def run_simulation(sim, control, guidance, steps, dt):
     data = []
     t = 0
     for i in range(steps):
         state = sim.get_state()
-        data.append([
-            t, state, sim.angle_of_attack, sim.sideslip_angle,
-            sim.angular_acc, sim.acc, sim.CL, sim.CD, sim.Cl, sim.Cn, sim.Cm,
-            sim.F_aero, sim.F_g, sim.F_fictious, sim.M_aero, sim.M_f_aero, sim.M_fictious, sim.va, sim.w, [sim.flap_l, sim.flap_r]
-        ])
+
         # Sim only calculates the derivatives, 
         # uses rk4 to work out how much derivititve to add - its is pretty good
         new_state = rk4(state, sim.get_solver_derivatives, dt)
         # update sim
         sim.set_state(new_state)
+
         # update inputs
-        update_inputs(sim, t)
+        current_heading = sim.eulers[2] # assumption B is minimal
+        desired_heading,_ = guidance.update(sim.get_inertial_state())
+        new_inputs = control.simple_heading([sim.flap_l, sim.flap_r], desired_heading, dt)
+        
+        # save the current data
+        data.append([
+            t, state, sim.angle_of_attack, sim.sideslip_angle,
+            sim.angular_acc, sim.acc, sim.CL, sim.CD, sim.Cl, sim.Cn, sim.Cm,
+            sim.F_aero, sim.F_g, sim.F_fictious, sim.M_aero, sim.M_f_aero, 
+            sim.M_fictious, sim.va, sim.w, [sim.flap_l, sim.flap_r], new_inputs,
+            [current_heading, desired_heading]
+        ])
+
+        # update the control inputs
+        sim.set_inputs([new_inputs, sim.wind])
+
         # calculate the derivatives for the next step
         sim.calculate_derivatives()
         # update the time
@@ -185,21 +146,27 @@ def main():
         omega=np.array([0, 0, 0])
     )
 
-    # lets just glide first
+    # lets just glide first, no wind
     initial_inputs = [[0.0, 0.0], np.array([0, 0, 0])]
 
     # params: you can chase the specifics using this. its a dict
     params = {}
 
-    # lets make the object
-    sim = simulator.ParafoilSimulation_6Dof(params, [init_state.pos, init_state.vel, init_state.eulers, init_state.omega], initial_inputs)
-
     # teperal resolution of the sim
     dt = 0.1
     # number of steps to run the sim for
     steps = 1000 
+
+    # lets make the objects
+    sim = simulator.ParafoilSimulation_6Dof(params, 
+                                            [init_state.pos, init_state.vel, init_state.eulers, init_state.omega],
+                                            initial_inputs)
+    guidance = T_approach([init_state.pos + np.array([0, 0, 300])], dt)
+
+    control = Control()
+
     # run the sim
-    data = run_simulation(sim, steps, dt)
+    data = run_simulation(sim, control, guidance, steps, dt)
 
     # only get data between 20 and 50 seconds
     wind_data = [entry for entry in data if 20 < entry[0] < 45]
@@ -210,11 +177,9 @@ def main():
         R = sim.get_CDM(eulers[i])
         vel_inertial.append(R @ vel)
     vel_inertial = np.array(vel_inertial)  # Now it's a proper 2D array
-    wind_estimate = least_squares_wind_calc(vel_inertial)
-    print(f"Wind Estimate: {wind_estimate}")
-
+    #wind_estimate = least_squares_wind_calc(vel_inertial)
+    #print(f"Wind Estimate: {wind_estimate}")
     # Convert data to numpy array for easier manipulation
-
 
     plots_to_show = {
         'Position': True,
