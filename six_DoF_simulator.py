@@ -46,8 +46,11 @@ class ParafoilSimulation_6Dof:
     def get_state(self):
         return [self.p, self.vb, self.eulers, self.angular_vel]
     
+    def get_inertial_position(self):
+        return self.initial_pos + np.array([1,1,-1]) @ self.p
+    
     def get_inertial_state(self):
-        return[self.p, self.body_to_inertial(self.vb), self.eulers, self.get_euler_rates()]
+        return[self.get_inertial_position(), self.body_to_inertial(self.vb), self.eulers, self.get_euler_rates()]
     
     def get_CDM(self, euler_angles = None):
         """

@@ -37,13 +37,15 @@ def run_simulation(sim, control, guidance, steps, dt):
         sim.set_state(new_state)
 
         # update inputs
-        current_heading = sim.eulers[2] # assumption B is minimal
+        current_heading = np.degrees(sim.eulers[2]) % 360 # convert
         desired_heading,_ = guidance.update(sim.get_inertial_state())
-        new_inputs = control.simple_heading([sim.flap_l, sim.flap_r], desired_heading, dt)
-        
+        desired_heading = np.degrees(desired_heading) + 180
+        logging.info(f"Current heading: {current_heading:.2f}, Desired heading: {desired_heading:.2f}")
+        new_inputs = control.simple_heading([sim.flap_l, sim.flap_r], current_heading, desired_heading, dt)
         # save the current data
         data.append([
             t, state, sim.angle_of_attack, sim.sideslip_angle,
+            
             sim.angular_acc, sim.acc, sim.CL, sim.CD, sim.Cl, sim.Cn, sim.Cm,
             sim.F_aero, sim.F_g, sim.F_fictious, sim.M_aero, sim.M_f_aero, 
             sim.M_fictious, sim.va, sim.w, [sim.flap_l, sim.flap_r], new_inputs,
@@ -51,19 +53,21 @@ def run_simulation(sim, control, guidance, steps, dt):
         ])
 
         # update the control inputs
-        sim.set_inputs([new_inputs, sim.wind])
-
+        sim.set_inputs([new_inputs, sim.w])
+        if(sim.p[2] + guidance.init_pos[2] < guidance.IPI_height):
+            logging.info("Parafoil has hit the ground, stopping simulation.")
+            break
         # calculate the derivatives for the next step
         sim.calculate_derivatives()
         # update the time
         t += dt
-        # Log every 10 steps
-        if i % 10 == 0:
-            logging.info(f"t = {t:.3f}")
-            logging.info("  Position: %s", state[0])
-            logging.info("  Velocity (body): %s", state[1])
-            logging.info("  Euler angles (deg): %s", np.degrees(state[2]))
-            logging.info("  Angular velocity (deg/s): %s", np.degrees(state[3]))
+        """        # Log every 10 steps
+                if i % 10 == 0:
+                    logging.info(f"t = {t:.3f}")
+                    logging.info("  Position: %s", state[0])
+                    logging.info("  Velocity (body): %s", state[1])
+                    logging.info("  Euler angles (deg): %s", np.degrees(state[2]))
+                    logging.info("  Angular velocity (deg/s): %s", np.degrees(state[3]))"""
     return data
 
 def plot_state_over_time(data, labels, title, ylabel, times):
@@ -155,13 +159,13 @@ def main():
     # teperal resolution of the sim
     dt = 0.1
     # number of steps to run the sim for
-    steps = 1000 
+    steps = 1500 
 
     # lets make the objects
     sim = simulator.ParafoilSimulation_6Dof(params, 
                                             [init_state.pos, init_state.vel, init_state.eulers, init_state.omega],
                                             initial_inputs)
-    guidance = T_approach([init_state.pos + np.array([0, 0, 300])], dt)
+    guidance = T_approach(np.array([0, 0, 250]), np.array([200, 0, 20]) , dt)
 
     control = Control()
 
