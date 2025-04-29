@@ -1,3 +1,125 @@
-"""
-We need to update our coefficients. lets bloody do this!"""
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+from deap import base, creator, tools, algorithms
+import multiprocessing
+from single_step_sim import simulate_model 
+# --- Example: Coefficient-specific bounds (replace with your real ones) ---
+bounds = [
+    (-2.0, 2.0),  # Coefficient 1
+    (-1.5, 1.5),  # Coefficient 2
+    (0.0, 0.5),   # Coefficient 3
+    (-0.5, 0.5),  # Coefficient 4
+    (-1.0, 1.0),  # Coefficient 5
+    (-2.0, 2.0),  # Coefficient 6
+    (0.0, 0.3),   # Coefficient 7
+    (-0.8, 0.8),  # Coefficient 8
+    (-1.2, 1.2),  # Coefficient 9
+    (-1.0, 1.0),  # Coefficient 10
+    (0.0, 0.4),   # Coefficient 11
+    (-0.6, 0.6),  # Coefficient 12
+    (-2.5, 2.5),  # Coefficient 13
+    (-1.5, 1.5),  # Coefficient 14
+    (-0.5, 0.5),  # Coefficient 15
+    (-3.0, 3.0)   # Coefficient 16
+]
+# initial conditions: position, velocity, euler angles, angular velocity
+initial_conditions = np.array([np.array([0,0,0]), np.array([10,0,3]), np.array([0,0,0]), np.array([0,0,0])])
+time_vector = np.linspace(0, 100, 1000)  # Example time vector (0 to 10 seconds, 100 steps)
+real_data = ...
+inputs = ... 
 
+# --- Fitness function ---
+def evaluate(coefficients):
+    simulated = simulate_model(time_vector, initial_conditions, inputs, coefficients,True)
+    error = np.linalg.norm(simulated - real_data)
+    return (error,)
+
+# Custom individual generator based on bounds
+def generate_individual():
+    return creator.Individual([random.uniform(low, high) for low, high in bounds])
+
+# Custom mutation respecting bounds
+def mutate_individual(individual, eta=0.5, indpb=0.2):
+    for i, (low, up) in enumerate(bounds):
+        if random.random() < indpb:
+            individual[i] = tools.mutPolynomialBounded(
+                [individual[i]], eta=eta, low=low, up=up, indpb=1.0
+            )[0][0]
+    return individual,
+
+# Clamp individual after mating to keep within bounds
+def clamp_individual(individual):
+    for i, (low, up) in enumerate(bounds):
+        individual[i] = max(min(individual[i], up), low)
+    return individual
+
+# --- DEAP setup ---
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+creator.create("Individual", list, fitness=creator.FitnessMin)
+
+# Register DEAP toolbox
+toolbox = base.Toolbox()
+toolbox.register("individual", generate_individual)
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+toolbox.register("mate", tools.cxBlend, alpha=0.5)
+toolbox.register("mutate", mutate_individual)
+toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("evaluate", evaluate)
+
+# Enable parallelization
+pool = multiprocessing.Pool()
+toolbox.register("map", pool.map)
+
+# --- Genetic Algorithm execution ---
+population = toolbox.population(n=10)
+NGEN = 50
+
+# Track best fitness
+best_fitnesses = []
+
+# Setup live plotting
+plt.ion()
+fig, ax = plt.subplots()
+line, = ax.plot([], [], marker='o')
+ax.set_xlim(0, NGEN)
+ax.set_ylim(0, 1)  # Adjust if necessary based on expected fitness values
+ax.set_xlabel('Generation')
+ax.set_ylabel('Best Fitness (Error)')
+ax.set_title('Live Fitness Evolution')
+ax.grid(True)
+
+for gen in range(NGEN):
+    offspring = algorithms.varAnd(population, toolbox, cxpb=0.5, mutpb=0.2)
+
+    # Clamp after mating/mutation
+    offspring = [clamp_individual(ind) for ind in offspring]
+
+    fits = toolbox.map(toolbox.evaluate, offspring)
+    for fit, ind in zip(fits, offspring):
+        ind.fitness.values = fit
+    population = toolbox.select(offspring, k=len(population))
+
+    # Record best fitness this generation
+    best = tools.selBest(population, 1)[0]
+    best_fitnesses.append(best.fitness.values[0])
+
+    # Update live plot
+    line.set_data(range(len(best_fitnesses)), best_fitnesses)
+    ax.relim()
+    ax.autoscale_view()
+    plt.pause(0.01)
+
+# Best individual
+best_ind = tools.selBest(population, 1)[0]
+print('Best Coefficients:')
+for i, coeff in enumerate(best_ind):
+    print(f"Coefficient {i+1}: {coeff:.6f}")
+
+# Close the multiprocessing pool
+pool.close()
+pool.join()
+
+# Finalize plot
+plt.ioff()
+plt.show()

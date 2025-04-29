@@ -85,15 +85,66 @@ for _ in range(num_steps):
              ]  # Update state
     positions.append(state[0])  # Store position for plotting
 
-
-
+def get_ideal_position(params, state):
+    """
+    Calculate the ideal position based on the current state and guidance parameters.
+    """
+    # Calculate the ideal position based on the current state and guidance parameters
+    ideal_position = np.array([state[0][0], state[0][1], params['final_approach_height']])
+    
+    # Adjust the ideal position based on the wind vector and other parameters
+    ideal_position += params['wind_unit_vector'] * params['wind_magnitude']
+    
+    return ideal_position
 # ================= Graphs ==================
-
-positions = np.array(positions)
-
 # Plotting (3D)
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+
+def plot_3D_position(data,guidance_params,estimated_path = None):
+    positions = np.array([entry[1][0] for entry in data])
+    inertial_positions = np.array([entry[0] + guidance_params["deployment_pos"]  for entry in positions])
+    
+    # plotting
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot(inertial_positions[:, 0], inertial_positions[:, 1], inertial_positions[:, 2], label="Parafoil Path", linewidth=2)
+    if estimated_path is not None:
+        print("hello")  
+        ax.plot(estimated_path[:, 0], estimated_path[:, 1], estimated_path[:, 2], color = 'green', label="Parafoil Path", linewidth=2)
+    
+    ax.scatter(guidance_params["deployment_pos"][0], guidance_params["deployment_pos"][1], guidance_params["deployment_pos"][2], color='red', label="Start Position")
+    ax.scatter(guidance_params['IPI'][0], guidance_params['IPI'][1], guidance_params['IPI'][2], color='green', label="Impact Point Indicator (IPI)")
+    ax.scatter(guidance_params['FTP_centre'][0], guidance_params['FTP_centre'][1], guidance_params['final_approach_height'], color='blue', label="Final Target Point (FTP)")
+    wind_line = guidance_params['IPI'] + np.array([guidance_params['wind_unit_vector'][0] * 100,guidance_params['wind_unit_vector'][1] * 100, 0])
+    print(f"Wind Line: {wind_line}")
+    ax.plot([guidance_params['IPI'][0], wind_line[0]],[guidance_params['IPI'][1], wind_line[1]],[guidance_params['IPI'][2],wind_line[2]], color='orange', label="Wind Vector", linewidth=2, alpha=0.5)
+    # Labels and title
+    ax.set_title("3D Parafoil Path")
+    ax.set_xlabel("X Position")
+    ax.set_ylabel("Y Position")
+    ax.set_zlabel("Z Position")
+    ax.legend()
+
+    # Set equal x and y axis limits
+    x_min, x_max = np.min(inertial_positions[:, 0]), np.max(inertial_positions[:, 0])
+    y_min, y_max = np.min(inertial_positions[:, 1]), np.max(inertial_positions[:, 1])
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    max_range = max(x_range, y_range)
+
+    x_center = (x_max + x_min) / 2
+    y_center = (y_max + y_min) / 2
+
+    ax.set_xlim(x_center - max_range / 2, x_center + max_range / 2)
+    ax.set_ylim(y_center - max_range / 2, y_center + max_range / 2)
+
+    plt.show()
+    return
+
+positions = np.array(positions)
+
+
 
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')

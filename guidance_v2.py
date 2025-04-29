@@ -2,6 +2,8 @@ import numpy as np
 import logging
 from wind_estimation import least_squares_wind_calc
 import matplotlib.pyplot as plt
+
+
 def smooth_heading_to_line_with_wind(position, line_point, line_direction, lookahead_distance, wind_vector, airspeed):
     """
     Compute the heading required to move toward the lookahead point, considering wind.
@@ -243,3 +245,56 @@ def compute_required_heading(wind_vector, airspeed, target_vector):
     heading = np.arctan2(v_a[1], v_a[0])
 
     return heading, v_a
+
+def get_estimated_path(params, current_heading, actual_wind_vector, ideal_positions, dt):
+    vel_x = params['horizontal_velocity'] * np.cos(current_heading) + actual_wind_vector[0]
+    vel_y = params['horizontal_velocity'] * np.sin(current_heading) + actual_wind_vector[1]
+    vel_z = params['sink_velocity']  # Assuming constant sink velocity
+    new_x = vel_x * dt + ideal_positions[-1][0]  # Update x position
+    new_y = vel_y * dt + ideal_positions[-1][1]  # Update y position
+    new_z = ideal_positions[0][2] - vel_z * dt  # Update z position
+    print(f"New Position: {new_x}, {new_y}, {new_z}")
+    print(f"New Velocity: {vel_x}, {vel_y}, {vel_z}")
+    ideal_positions.append(np.array([new_x,new_y,new_z]))  # Store position for plotting
+
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+
+def plot_3D_position(inertial_positions,guidance_params,estimated_path = None):
+    # plotting
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot(inertial_positions[:, 0], inertial_positions[:, 1], inertial_positions[:, 2], label="Parafoil Path", linewidth=2)
+    if estimated_path is not None:
+        print("hello")  
+        ax.plot(estimated_path[:, 0], estimated_path[:, 1], estimated_path[:, 2], color = 'green', label="Parafoil Path", linewidth=2)
+    
+    ax.scatter(guidance_params["deployment_pos"][0], guidance_params["deployment_pos"][1], guidance_params["deployment_pos"][2], color='red', label="Start Position")
+    ax.scatter(guidance_params['IPI'][0], guidance_params['IPI'][1], guidance_params['IPI'][2], color='green', label="Impact Point Indicator (IPI)")
+    ax.scatter(guidance_params['FTP_centre'][0], guidance_params['FTP_centre'][1], guidance_params['final_approach_height'], color='blue', label="Final Target Point (FTP)")
+    wind_line = guidance_params['IPI'] + np.array([guidance_params['wind_unit_vector'][0] * 100,guidance_params['wind_unit_vector'][1] * 100, 0])
+    print(f"Wind Line: {wind_line}")
+    ax.plot([guidance_params['IPI'][0], wind_line[0]],[guidance_params['IPI'][1], wind_line[1]],[guidance_params['IPI'][2],wind_line[2]], color='orange', label="Wind Vector", linewidth=2, alpha=0.5)
+    # Labels and title
+    ax.set_title("3D Parafoil Path")
+    ax.set_xlabel("X Position")
+    ax.set_ylabel("Y Position")
+    ax.set_zlabel("Z Position")
+    ax.legend()
+
+    # Set equal x and y axis limits
+    x_min, x_max = np.min(inertial_positions[:, 0]), np.max(inertial_positions[:, 0])
+    y_min, y_max = np.min(inertial_positions[:, 1]), np.max(inertial_positions[:, 1])
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    max_range = max(x_range, y_range)
+
+    x_center = (x_max + x_min) / 2
+    y_center = (y_max + y_min) / 2
+
+    ax.set_xlim(x_center - max_range / 2, x_center + max_range / 2)
+    ax.set_ylim(y_center - max_range / 2, y_center + max_range / 2)
+
+    plt.show()
+    return

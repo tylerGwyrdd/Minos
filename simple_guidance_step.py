@@ -1,4 +1,4 @@
-import guidance
+from guidance_v2 import guidance_update
 import numpy as np
 
 def guidance_update(params,state):
@@ -13,7 +13,6 @@ def guidance_update(params,state):
         flare magnitude (float): The magnitude of the flare for the parafoil. 1 = flare, 0 = normal
     """
     # create instance of guidance class
-    guide = guidance.T_approach(params)
-    params = guide.get_params()
+    guide = guidance_update(params)
     # update it with the 
     return params, guide.update(state)

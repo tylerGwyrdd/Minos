@@ -10,7 +10,7 @@ from matplotlib.widgets import Slider, Button
 import logging
 from utils import visualize_parafoil_pose
 from utils import rk4 
-from guidance import T_approach
+import guidance_v2 
 from guidance import Control
 
 # Logging setup
@@ -23,8 +23,16 @@ class State:
     eulers: np.ndarray
     omega: np.ndarray
 
+def simple_control(time):
+    # Simple control logic for demonstration purposes
+    if time < 15:
+        return [0, 0]  # Flap deflections
+    elif time < 40:
+        return [0.0, 0.3]
+    else:
+        return [0.0, 0.0]
 
-def run_simulation(sim, control, guidance, steps, dt):
+def run_simulation(sim, guidance_params, control, steps, dt):
     data = []
     t = 0
     for i in range(steps):
@@ -37,24 +45,31 @@ def run_simulation(sim, control, guidance, steps, dt):
         sim.set_state(new_state)
 
         # update inputs
-        current_heading = np.degrees(sim.eulers[2]) % 360 # convert
-        desired_heading,_ = guidance.update(sim.get_inertial_state())
-        desired_heading = np.degrees(desired_heading) + 180
-        logging.info(f"Current heading: {current_heading:.2f}, Desired heading: {desired_heading:.2f}")
-        new_inputs = control.simple_heading([sim.flap_l, sim.flap_r], current_heading, desired_heading, dt)
+        #current_heading = np.deg2rad(state[2][2])
+        #desired_heading,_ = guidance_v2.guidance_update(guidance_params, sim.get_inertial_state())
+        #logging.info(f"Current heading: {current_heading:.2f}, Desired heading: {desired_heading:.2f}")
+        
+        # fancy control logic
+        # new_inputs = control.simple_heading([sim.flap_l, sim.flap_r], current_heading, desired_heading, dt)
+        
+        # simple control logic
+        new_inputs = simple_control(t)
+        desired_heading, current_heading = 0, 0
+        
+        # get the estimated state for the
+
         # save the current data
         data.append([
             t, state, sim.angle_of_attack, sim.sideslip_angle,
-            
             sim.angular_acc, sim.acc, sim.CL, sim.CD, sim.Cl, sim.Cn, sim.Cm,
             sim.F_aero, sim.F_g, sim.F_fictious, sim.M_aero, sim.M_f_aero, 
             sim.M_fictious, sim.va, sim.w, [sim.flap_l, sim.flap_r], new_inputs,
-            [current_heading, desired_heading]
+            [current_heading, desired_heading], sim.get_inertial_position()
         ])
 
         # update the control inputs
         sim.set_inputs([new_inputs, sim.w])
-        if(sim.p[2] + guidance.init_pos[2] < guidance.IPI_height):
+        if(sim.p[2] + guidance_params["deployment_pos"][2] < guidance_params["IPI"][2]):
             logging.info("Parafoil has hit the ground, stopping simulation.")
             break
         # calculate the derivatives for the next step
@@ -149,30 +164,48 @@ def main():
         eulers=np.radians(np.array([0, 0, 0])),
         omega=np.array([0, 0, 0])
     )
-
+    deployment_pos_inertial = np.array([0, 0, 500])
     # lets just glide first, no wind
     initial_inputs = [[0.0, 0.0], np.array([0, 0, 0])]
 
     # params: you can chase the specifics using this. its a dict
-    params = {}
+    sim_params = {
+        'initial_pos': deployment_pos_inertial ,
+    }
 
     # teperal resolution of the sim
     dt = 0.1
     # number of steps to run the sim for
-    steps = 1500 
+    steps = 1000 
 
     # lets make the objects
-    sim = simulator.ParafoilSimulation_6Dof(params, 
+    sim = simulator.ParafoilSimulation_6Dof(sim_params, 
                                             [init_state.pos, init_state.vel, init_state.eulers, init_state.omega],
                                             initial_inputs)
-    guidance = T_approach(np.array([0, 0, 250]), np.array([200, 0, 20]) , dt)
-
+    guidance_params = {
+    'deployment_pos': deployment_pos_inertial,
+    'final_approach_height': 50,
+    'spirialing_radius': 5,
+    'update_rate': dt,
+    'wind_unit_vector': np.array([1, 0]),
+    'wind_magnitude': 0.0,
+    'wind_v_list': [],
+    'horizontal_velocity': 6,
+    'sink_velocity': 5,
+    'IPI': np.array([0, 0, 0]),
+    'flare_height': 20,
+    'initialised': False,
+    'mode': 'initialising',  # initalising, homing, final approach, energy management
+    'start_heading': init_state.eulers[2],  # radians
+    'desired_heading': np.deg2rad(0),  # radians
+    'FTP_centre': np.array([0,0]),  # Final target point
+}
     control = Control()
-
     # run the sim
-    data = run_simulation(sim, control, guidance, steps, dt)
+    data = run_simulation(sim,guidance_params, control, steps, dt)
 
-    # only get data between 20 and 50 seconds
+    # ================= Wind Estimation ==================
+    """    # only get data between 20 and 50 seconds
     wind_data = [entry for entry in data if 20 < entry[0] < 45]
     vel_b = np.array([entry[1][1] for entry in wind_data])
     eulers = np.array([entry[1][2] for entry in wind_data])
@@ -183,20 +216,20 @@ def main():
     vel_inertial = np.array(vel_inertial)  # Now it's a proper 2D array
     #wind_estimate = least_squares_wind_calc(vel_inertial)
     #print(f"Wind Estimate: {wind_estimate}")
-    # Convert data to numpy array for easier manipulation
+    # Convert data to numpy array for easier manipulation"""
 
     plots_to_show = {
-        'Position': True,
-        'Velocity': True,
-        'Acceleration': True,
-        'Euler Angles': True,
-        'Angular Velocity': True,
-        'Angular Acceleration': True,
-        'Angle of Attack': True,
-        'Sideslip Angle': True,
-        'Force Coefficients': True,
-        'Moment Coefficients': True,
-        'Forces': True,
+        'Position': False,
+        'Velocity': False,
+        'Acceleration': False,
+        'Euler Angles': False,
+        'Angular Velocity': False,
+        'Angular Acceleration': False,
+        'Angle of Attack': False,
+        'Sideslip Angle': False,
+        'Force Coefficients': False,
+        'Moment Coefficients': False,
+        'Forces': False,
         'Moments': True,
         'Airspeed Vector': True,
         'Wind Vector': True,
@@ -206,6 +239,7 @@ def main():
     plot_selected_parameters(data, plots_to_show)
     eulers = np.degrees(np.array([entry[1][2] for entry in data]))
     positions = np.array([entry[1][0] for entry in data])
+    inertial_positions = np.array([entry[-1] for entry in data])
     # Visualize parafoil pose
     visualize_parafoil_pose(
         euler_series=eulers,
@@ -214,6 +248,8 @@ def main():
         slowmo_factor=1.0,
         save_path=False
     )
+
+    guidance_v2.plot_3D_position(inertial_positions,guidance_params, estimated_path=None)
 
 if __name__ == "__main__":
     main()

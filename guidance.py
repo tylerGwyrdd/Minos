@@ -179,7 +179,9 @@ class Control:
         pass
     def simple_heading(self, current_flaps, current_heading, desired_heading, dt):
         kp = 0.05
-
+        current_heading = np.rad2deg(current_heading)
+        desired_heading = np.rad2deg(desired_heading)
+        
         heading_error = (desired_heading - current_heading + 180) % 360 - 180
         self.prev_heading_error = heading_error
         if abs(heading_error) < 2:

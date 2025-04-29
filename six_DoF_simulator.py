@@ -43,6 +43,145 @@ class ParafoilSimulation_6Dof:
         self.update_kinematic_transforations()
         self.update_wind_transformations()
 
+    def set_coefficients(self,coefficients = None):
+        """
+        set the aerodynamic coefficients for the simulation.
+        """
+        if coefficients is None:
+            return
+        self.CDo = coefficients[0]
+        self.CDa = coefficients[1]
+        self.CD_sym = coefficients[2]
+        self.CLo = coefficients[3]
+        self.CLa = coefficients[4]
+        self.CL_sym = coefficients[5]
+        self.CYB = coefficients[6]
+        self.ClB = coefficients[7]
+        self.Clp = coefficients[8]
+        self.Clr = coefficients[9]
+        self.Cl_asym = coefficients[10]
+        self.Cmo = coefficients[11]
+        self.Cma = coefficients[12]
+        self.Cmq = coefficients[13]
+        self.CnB = coefficients[14]
+        self.Cn_p = coefficients[15]
+        self.Cn_r = coefficients[16]
+        self.Cn_asym = coefficients[17]
+
+    def check_set_param(self, dict, var, param_name):
+        """
+        Check if the parameter is set in the dictionary and if its type matches the expected type.
+        
+        If not, raise an error.
+        """
+        param = dict.get(param_name)
+        if param == None:
+            print(f"Parameter '{param_name}' is not set. Using default value {var}.")
+            return False
+        elif type(var) != type(param):
+            raise TypeError(f"Parameter '{param_name}' should be of type {type(var)}. Got {type(param)} instead.")
+        var = param
+        return True
+
+    def set_system_params(self,system_params):
+        """
+        Set the system parameters for the simulation. Default values follow Snowflake PAD model.
+        
+        see: Yakimenko, Oleg A.. (2015). <i>Precision Aerial Delivery Systems - Modeling, Dynamics, and Control
+        """
+
+        # aerodynamic parameters, default values follow Snowflake PAD model.
+        self.S = 1.0
+        self.check_set_param(system_params, self.S, "S") # surface area of parafoil
+        self.c = 0.75
+        self.check_set_param(system_params, self.c, "c") # mean chord length
+        #self.AR = 0.0
+        #self.check_set_param(system_params, self.AR, "AR") # aspect ratio
+        self.t = 0.075
+        self.check_set_param(system_params, self.t, "t") # thickness of the parafoil
+        self.b = 1.35
+        self.check_set_param(system_params, self.b, "b") # wingspan of the parafoil
+        self.rigging_angle = np.radians(-12.0)
+        self.check_set_param(system_params, self.rigging_angle, "rigging_angle")
+
+        # system parameters
+        self.m = 2.4 # mass of the system
+        self.check_set_param(system_params,self.m, "m") # mass of the system
+        self.Rp = np.array([0.0,0,-1.11]) # distance between parafoil and the center of mass for the system
+        self.check_set_param(system_params,self.Rp, "Rp")
+        
+        self.I = np.array([[0.42,0,0.03],[0,0.4,0],[0.03,0,0.053]]) # moment of inertia of the system
+        # if we have to do our own calculations, we need more info
+        self.check_set_param(system_params,self.I, "I") # moment of inertia of the system
+
+        self.initial_pos = system_params['initial_pos'] # initial position of the system in inertial frame
+        """"
+        self.parafoil_mass = 0.0
+        self.check_set_param(system_params,self.parafoil_mass, "parafoil_mass") # mass of parafoil
+        self.payload_mass = 0.0
+        self.check_set_param(system_params,self.payload_mass, "payload_mass") # mass of payload
+        self.Rlc = 0.0
+        self.check_set_param(system_params,self.Rlc, "Rlc") # distance between payload CoM and connection point to parafoil
+        self.Rpc = 0.0
+        self.check_set_param(system_params,self.Rpc, "Rpc") # distance between parafoil CoM and connection point to parafoil
+        
+        self.m = self.parafoil_mass + self.payload_mass # mass of entire system
+
+        """
+        # ________________ aerodynamic parameters ____________________
+        # for drag
+        self.CD = 0
+        self.CDo = 0.25
+        self.check_set_param(system_params,self.CDo, "CDo")
+        self.CDa = 0.12
+        self.check_set_param(system_params,self.CDa, "CDa") # drag coefficient
+        self.CD_sym = 0.2
+        self.check_set_param(system_params,self.CD_sym, "CD_sym")
+
+        # for lift
+        self.CL = 0
+        self.CLo = 0.091
+        self.check_set_param(system_params,self.CLo, "CL") # lift coefficient
+        self.CLa = 0.90
+        self.check_set_param(system_params,self.CLa, "CLa") # lift coefficient changing due to angle of incidance
+        self.CL_sym = 0.2
+        self.check_set_param(system_params,self.CLa, "CL_sym") # lift coefficient changing due to angle of incidance
+        
+        # for side force
+        self.CYB = -0.23
+        self.check_set_param(system_params,self.CYB, "CYB") # side force coefficient
+
+        # for rolling
+        self.Cl = 0
+        self.ClB = -0.036 # coefficient due to sideslip angle
+        self.check_set_param(system_params,self.ClB, "clB")
+        self.Clp = -0.84
+        self.check_set_param(system_params,self.Clp, "Clp")
+        self.Clr = -0.082
+        self.check_set_param(system_params,self.Clr, "Clr")
+        self.Cl_asym = -0.0035 # coefficient due to asymmetric flap deflection
+        self.check_set_param(system_params,self.Cl_asym, "Cl_asym")
+
+        # for pitching
+        self.Cm = 0
+        self.Cmo = 0.35 # coefficient at zero lift
+        self.check_set_param(system_params,self.Cmo, "Cmo")
+        self.Cma = -0.72 # coefficient due to angle of incidance
+        self.check_set_param(system_params,self.Cma, "Cma")
+        self.Cmq = -1.49
+        self.check_set_param(system_params,self.Cmq, "Cmq") # coefficient due to pitch rate
+
+        # for yawing
+        self.Cn = 0
+        self.CnB = -0.0015 # coefficient due to sideslip angle
+        self.check_set_param(system_params,self.CnB, "CnB")
+        self.Cn_p = -0.082 # coefficient due to roll rate
+        self.check_set_param(system_params,self.Cn_p, "Cn_p")
+        self.Cn_r = -0.27
+        self.check_set_param(system_params,self.Cn_r, "Cn_r") # coefficient due to yaw rate
+        self.Cn_asym = 0.0115
+        self.check_set_param(system_params,self.Cn_asym, "Cn_asym") # coefficient due to asymmetric flap deflection           
+            
     def get_state(self):
         return [self.p, self.vb, self.eulers, self.angular_vel]
     
@@ -136,118 +275,6 @@ class ParafoilSimulation_6Dof:
         R_bw = self.R_wb if inverse else self.R_wb.T
         return np.dot(R_bw, vector)
 
-    def check_set_param(self, dict, var, param_name):
-        """
-        Check if the parameter is set in the dictionary and if its type matches the expected type.
-        
-        If not, raise an error.
-        """
-        param = dict.get(param_name)
-        if param == None:
-            print(f"Parameter '{param_name}' is not set. Using default value {var}.")
-            return False
-        elif type(var) != type(param):
-            raise TypeError(f"Parameter '{param_name}' should be of type {type(var)}. Got {type(param)} instead.")
-        var = param
-        return True
-
-    def set_system_params(self,system_params):
-        """
-        Set the system parameters for the simulation. Default values follow Snowflake PAD model.
-        
-        see: Yakimenko, Oleg A.. (2015). <i>Precision Aerial Delivery Systems - Modeling, Dynamics, and Control
-        """
-
-        # aerodynamic parameters, default values follow Snowflake PAD model.
-        self.S = 1.0
-        self.check_set_param(system_params, self.S, "S") # surface area of parafoil
-        self.c = 0.75
-        self.check_set_param(system_params, self.c, "c") # mean chord length
-        #self.AR = 0.0
-        #self.check_set_param(system_params, self.AR, "AR") # aspect ratio
-        self.t = 0.075
-        self.check_set_param(system_params, self.t, "t") # thickness of the parafoil
-        self.b = 1.35
-        self.check_set_param(system_params, self.b, "b") # wingspan of the parafoil
-        self.rigging_angle = np.radians(-12.0)
-        self.check_set_param(system_params, self.rigging_angle, "rigging_angle")
-
-        # system parameters
-        self.m = 2.4 # mass of the system
-        self.check_set_param(system_params,self.m, "m") # mass of the system
-        self.Rp = np.array([0.0,0,-1.11]) # distance between parafoil and the center of mass for the system
-        self.check_set_param(system_params,self.Rp, "Rp")
-        
-        self.I = np.array([[0.42,0,0.03],[0,0.4,0],[0.03,0,0.053]]) # moment of inertia of the system
-        # if we have to do our own calculations, we need more info
-        self.check_set_param(system_params,self.I, "I") # moment of inertia of the system
-        """"
-        self.parafoil_mass = 0.0
-        self.check_set_param(system_params,self.parafoil_mass, "parafoil_mass") # mass of parafoil
-        self.payload_mass = 0.0
-        self.check_set_param(system_params,self.payload_mass, "payload_mass") # mass of payload
-        self.Rlc = 0.0
-        self.check_set_param(system_params,self.Rlc, "Rlc") # distance between payload CoM and connection point to parafoil
-        self.Rpc = 0.0
-        self.check_set_param(system_params,self.Rpc, "Rpc") # distance between parafoil CoM and connection point to parafoil
-        
-        self.m = self.parafoil_mass + self.payload_mass # mass of entire system
-
-        """
-        # ________________ aerodynamic parameters ____________________
-        # for drag
-        self.CD = 0
-        self.CDo = 0.25
-        self.check_set_param(system_params,self.CDo, "CDo")
-        self.CDa = 0.12
-        self.check_set_param(system_params,self.CDa, "CDa") # drag coefficient
-        self.CD_sym = 0.2
-        self.check_set_param(system_params,self.CD_sym, "CD_sym")
-
-        # for lift
-        self.CL = 0
-        self.CLo = 0.091
-        self.check_set_param(system_params,self.CLo, "CL") # lift coefficient
-        self.CLa = 0.90
-        self.check_set_param(system_params,self.CLa, "CLa") # lift coefficient changing due to angle of incidance
-        self.CL_sym = 0.2
-        self.check_set_param(system_params,self.CLa, "CL_sym") # lift coefficient changing due to angle of incidance
-        
-        # for side force
-        self.CYB = -0.23
-        self.check_set_param(system_params,self.CYB, "CYB") # side force coefficient
-
-        # for rolling
-        self.Cl = 0
-        self.ClB = -0.036 # coefficient due to sideslip angle
-        self.check_set_param(system_params,self.ClB, "clB")
-        self.Clp = -0.84
-        self.check_set_param(system_params,self.Clp, "Clp")
-        self.Clr = -0.082
-        self.check_set_param(system_params,self.Clr, "Clr")
-        self.Cl_asym = -0.0035 # coefficient due to asymmetric flap deflection
-        self.check_set_param(system_params,self.Cl_asym, "Cl_asym")
-
-        # for pitching
-        self.Cm = 0
-        self.Cmo = 0.35 # coefficient at zero lift
-        self.check_set_param(system_params,self.Cmo, "Cmo")
-        self.Cma = -0.72 # coefficient due to angle of incidance
-        self.check_set_param(system_params,self.Cma, "Cma")
-        self.Cmq = -1.49
-        self.check_set_param(system_params,self.Cmq, "Cmq") # coefficient due to pitch rate
-
-        # for yawing
-        self.Cn = 0
-        self.CnB = -0.0015 # coefficient due to sideslip angle
-        self.check_set_param(system_params,self.CnB, "CnB")
-        self.Cn_p = -0.082 # coefficient due to roll rate
-        self.check_set_param(system_params,self.Cn_p, "Cn_p")
-        self.Cn_r = -0.27
-        self.check_set_param(system_params,self.Cn_r, "Cn_r") # coefficient due to yaw rate
-        self.Cn_asym = 0.0115
-        self.check_set_param(system_params,self.Cn_asym, "Cn_asym") # coefficient due to asymmetric flap deflection           
-            
     def calculate_aero_force_coeff(self):
         # for lifting
         self.CL = self.CLo + self.CLa * (self.angle_of_attack + self.rigging_angle) + self.CL_sym*self.delta_s
@@ -286,7 +313,7 @@ class ParafoilSimulation_6Dof:
         Fa_z = 0.5 * p_density * self.va_mag**2 * self.S * self.CL
 
         F_aero_A = np.array([Fa_x,Fa_y,Fa_z])
-        #rotate forces to the body frame and negify
+        # rotate forces to the body frame and negify
         self.F_aero = - self.body_to_wind(F_aero_A, False)
         return self.F_aero
 
