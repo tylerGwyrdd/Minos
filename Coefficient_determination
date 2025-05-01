@@ -26,7 +26,7 @@ bounds = [
 # initial conditions: position, velocity, euler angles, angular velocity
 initial_conditions = np.array([np.array([0,0,0]), np.array([10,0,3]), np.array([0,0,0]), np.array([0,0,0])])
 time_vector = np.linspace(0, 100, 1000)  # Example time vector (0 to 10 seconds, 100 steps)
-real_data = ...
+real_data = 
 inputs = ... 
 
 # --- Fitness function ---

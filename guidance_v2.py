@@ -2,7 +2,7 @@ import numpy as np
 import logging
 from wind_estimation import least_squares_wind_calc
 import matplotlib.pyplot as plt
-
+from mpl_toolkits.mplot3d import Axes3D
 
 def smooth_heading_to_line_with_wind(position, line_point, line_direction, lookahead_distance, wind_vector, airspeed):
     """
@@ -33,7 +33,16 @@ def smooth_heading_to_line_with_wind(position, line_point, line_direction, looka
     return required_heading
 
 def wrap_angle(angle):
+    """
+    returns angle within the bounds of 0 and 2 PI
+    """
     return (angle + 2 * np.pi) % (2 * np.pi)
+
+def wrap_angle_pi_to_pi(angle):
+    """
+    returns angle within the bounds of -PI and PI
+    """
+    return (wrap_angle(angle) + np.pi) % (2 * np.pi) - np.pi
 
 def guidance_update(params, state):
     """
@@ -42,12 +51,24 @@ def guidance_update(params, state):
     """
     flare_magnitude = 0
     # Get the current position from the simulator
-    position, current_height, current_heading = update_kinematics(params, state)
+    position, current_velocity, current_height, current_heading = update_kinematics(params, state)
     
     # check that we will make it to the IPI
     if params["mode"] != "Final Approach":
+        # easy
         vertical_time_to_IPI = (current_height - params["IPI"][2]) / params["sink_velocity"]
-        horizontal_time_to_IPI = np.linalg.norm(params["IPI"][:2] - position[:2])/params["horizontal_velocity"]
+        # first we need to get the effective vel (including wind)
+        vector_to_IPI = params["IPI"][:2] - position[:2]
+        direction_to_IPI = vector_to_IPI / np.linalg.norm(vector_to_IPI)
+        effective_vel = params["horizontal_velocity"] * direction_to_IPI + params["wind_magnitude"] * params["wind_unit_vector"]
+        # get the effective vel componenet along the direction to the IPI
+        groundspeed_along_path = np.dot(effective_vel, direction_to_IPI)
+        if groundspeed_along_path <= 0:
+            # we are never going to make it
+            horizontal_time_to_IPI = vertical_time_to_IPI + 1
+        else:
+            horizontal_time_to_IPI =  np.linalg.norm(vector_to_IPI) / groundspeed_along_path
+
         if vertical_time_to_IPI < horizontal_time_to_IPI:
             print("heading to IPI prematurely")
             vector_to_IPI = params["IPI"][:2] - position
@@ -78,18 +99,19 @@ def guidance_update(params, state):
             params["start_heading"] = current_heading
             params["initialised"] = True
         # Generate critical points for the T-approach algorithm
-        if current_heading - params["start_heading"] > np.deg2rad(360):
+        # we need raw state to check if the thing has rotated over 360 degrees
+        if state[2][2] - params["start_heading"] > np.deg2rad(360):
             print("Generating critical points")
             # get the wind estimate
             wind_estimate = least_squares_wind_calc(params["wind_v_list"])
             update_wind(params,wind_estimate)
             # update the FTP centre
             params["mode"] = "homing"
-            update_kinematics(params, state)
+            position, current_velocity, current_height, current_heading = update_kinematics(params, state)
             
         else:
             print("Initialising")
-            params["wind_v_list"].append(state[1][:2])
+            params["wind_v_list"].append(current_velocity)
             # keep going in a circle
             angular_vel = params["horizontal_velocity"] / params["spirialing_radius"]
             delta_heading = angular_vel * params["update_rate"]
@@ -179,6 +201,7 @@ def guidance_update(params, state):
             delta_heading = angular_vel * params["update_rate"]
             # go clockwise, add onto desired heading
             params["desired_heading"] += delta_heading
+    params["desired_heading"] = wrap_angle(params["desired_heading"])
     return params["desired_heading"], flare_magnitude
 
 def update_wind(params, wind_vector):
@@ -203,11 +226,12 @@ def update_kinematics(params, state):
     """
     position = state[0][:2]
     current_height = state[0][2]
-    current_heading = state[2][2]
+    current_velocity = state[1][:2]
+    current_heading = wrap_angle(state[2][2])
     if params["mode"] != "initialising":
         time = params["final_approach_height"] / params["sink_velocity"]
         params["FTP_centre"] = params["IPI"][:2] + (params["horizontal_velocity"] - params["wind_magnitude"])  * time * params["wind_unit_vector"] - params["wind_unit_vector"] * 2 * params["spirialing_radius"]
-    return position, current_height, current_heading
+    return position, current_velocity, current_height, current_heading
 
 def compute_required_heading(wind_vector, airspeed, target_vector):
     """
@@ -257,24 +281,130 @@ def get_estimated_path(params, current_heading, actual_wind_vector, ideal_positi
     print(f"New Velocity: {vel_x}, {vel_y}, {vel_z}")
     ideal_positions.append(np.array([new_x,new_y,new_z]))  # Store position for plotting
 
+def simple_control(current_heading, desired_heading, heading_rate):
+    """
+    Takes both headings in radians, returns flap deflections
+    """
+    # convert and calcuate requred headings
+    current_heading = wrap_angle_pi_to_pi(current_heading)
+    desired_heading = wrap_angle_pi_to_pi(desired_heading)
+    heading_error = wrap_angle_pi_to_pi(desired_heading - current_heading)
+    print(f"current heading: {np.rad2deg(current_heading)}, desired heading: {np.rad2deg(desired_heading)}, heading error: {np.rad2deg(heading_error)}")
+    # double check that heading error is correct
+    # convert to degrees for easibility
+    heading_error = np.rad2deg(heading_error)
+    deflections = [0,0]
+    magnitude = 0.5
+    if heading_error < 0:
+        deflections = [1,0]
+    else:
+        deflections = [0,1]
+    if abs(heading_error) < 1:
+        magnitude = 0
+    elif abs(heading_error) < 3:
+        magnitude = 0.1
+    elif abs(heading_error) < 5:
+        magnitude = 0.2
+    elif abs(heading_error) < 10:
+        magnitude = 0.3
+    elif abs(heading_error) < 30:
+        magnitude = 0.4
+    return [magnitude * deflections[0], magnitude * deflections[1]]
+        
+def PID_control(current_heading, desired_heading, heading_rate):
+    # Normalize angles
+    current_heading = wrap_angle_pi_to_pi(current_heading)
+    desired_heading = wrap_angle_pi_to_pi(desired_heading)
+    heading_error = wrap_angle_pi_to_pi(desired_heading - current_heading)
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+    print(f"current heading: {np.rad2deg(current_heading):.2f}°, desired heading: {np.rad2deg(desired_heading):.2f}°, heading error: {np.rad2deg(heading_error):.2f}°, heading rate: {heading_rate}")
 
-def plot_3D_position(inertial_positions,guidance_params,estimated_path = None):
-    # plotting
+    # PD control
+    Kp = 3
+    Kd = 4
+    control_effort = Kp * heading_error - Kd * heading_rate
+    print(f"control effort: {control_effort}")
+    # Convert control effort to flap values
+    max_deflection = 0.6  # full range
+    control_effort = np.clip(control_effort, -max_deflection, max_deflection)
+
+    if control_effort > 0:
+        # turn right
+        left_flap = 0.0
+        right_flap = control_effort
+    else:
+        # Turn left
+        left_flap = -control_effort
+        right_flap = 0.0
+    print(left_flap,right_flap)
+    return [left_flap, right_flap]
+
+def ideal_guidance(params, actual_wind, inital_state, max_turn_rate, max_steps): 
+    print("ideal guidance calculating.....")
+    print(params['mode'])
+    # for plotting
+    positions = [inital_state[0]]
+    print("inital pos:",inital_state[0])
+    velocities = [inital_state[1]]
+    # Simulate path
+    max_turn_rate = np.deg2rad(max_turn_rate)
+    num_steps = max_steps
+    dt = params['update_rate']  # time step
+    state = inital_state
+    for _ in range(num_steps):
+        # stop sim if we have landed on ground
+        if state[0][2] < 0:
+            print("IDEAL SIM COMPLETE")
+            print(f"Final Position: {[f'{coord:.3g}' for coord in state[0]]}")
+            IPI_error = params['IPI'][:2] - state[0][:2]
+            print(f"Final IPI Error: {[f'{e:.3g}' for e in IPI_error]}")
+            estimated_wind_vector = params['wind_unit_vector'] * params['wind_magnitude']
+            print(f"Estimated Wind: {[f'{w:.3g}' for w in estimated_wind_vector]}")
+            print(f"Actual Wind: {[f'{w:.3g}' for w in actual_wind]}")
+            #print(f"ftp_centre: {[f'{w:.3g}' for w in params['FTP_centre']]}")
+            break
+
+        # ================== guidance update ================
+        desired_heading,_ = guidance_update(params, state)
+
+        # ================== Control Logic ==================
+        # Adjust current heading toward desired heading, limited by max_turn_rate
+        current_heading = state[2][2]
+        heading_error = (desired_heading - current_heading + np.pi) % (2 * np.pi) - np.pi # Normalize to [-pi, pi]
+        heading_change = np.clip(heading_error, -max_turn_rate, max_turn_rate)
+        new_heading = current_heading + heading_change
+       #print(f"Heading Error: {np.degrees(heading_error)}, Current Heading: {np.degrees(wrap_angle(current_heading))}, Desired Heading: {np.degrees(wrap_angle(desired_heading))}, New Heading: {np.degrees(wrap_angle(new_heading))}")
+        
+        # ================= Motion update ===================
+        # Move in the direction of the current heading + wind
+        vel_x = params['horizontal_velocity'] * np.cos(new_heading) + actual_wind[0]
+        vel_y = params['horizontal_velocity'] * np.sin(new_heading) + actual_wind[1]
+        vel_z = params['sink_velocity']  # Assuming constant sink velocity
+        new_x = vel_x * dt + state[0][0]  # Update x position
+        new_y = vel_y * dt + state[0][1]  # Update y position
+        new_z = state[0][2] - vel_z * dt  # Update z position
+        #print(f"New Position: {new_x}, {new_y}, {new_z}")
+        #print(f"New Velocity: {vel_x}, {vel_y}, {vel_z}")
+        state = [np.array([new_x,new_y,new_z]), 
+                np.array([vel_x,vel_y,vel_z]), 
+                np.array([0,0,new_heading])
+                ]  # Update state
+        positions.append(state[0])  # Store position for plotting
+    return np.array(positions)
+
+def plot_3D_position(inertial_positions, guidance_params, ideal_positions = None, ideal_params = None):
+    
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot(inertial_positions[:, 0], inertial_positions[:, 1], inertial_positions[:, 2], label="Parafoil Path", linewidth=2)
-    if estimated_path is not None:
-        print("hello")  
-        ax.plot(estimated_path[:, 0], estimated_path[:, 1], estimated_path[:, 2], color = 'green', label="Parafoil Path", linewidth=2)
+    # plotting
+    ax.plot(inertial_positions[:, 0], inertial_positions[:, 1], inertial_positions[:, 2], label="actual Parafoil Path", color='gray', linewidth=2)
+    if ideal_positions is not None:
+        ax.plot(ideal_positions[:, 0], ideal_positions[:, 1], ideal_positions[:, 2], label="ideal Parafoil Path", color='brown', linewidth=2)
     
     ax.scatter(guidance_params["deployment_pos"][0], guidance_params["deployment_pos"][1], guidance_params["deployment_pos"][2], color='red', label="Start Position")
     ax.scatter(guidance_params['IPI'][0], guidance_params['IPI'][1], guidance_params['IPI'][2], color='green', label="Impact Point Indicator (IPI)")
     ax.scatter(guidance_params['FTP_centre'][0], guidance_params['FTP_centre'][1], guidance_params['final_approach_height'], color='blue', label="Final Target Point (FTP)")
     wind_line = guidance_params['IPI'] + np.array([guidance_params['wind_unit_vector'][0] * 100,guidance_params['wind_unit_vector'][1] * 100, 0])
-    print(f"Wind Line: {wind_line}")
     ax.plot([guidance_params['IPI'][0], wind_line[0]],[guidance_params['IPI'][1], wind_line[1]],[guidance_params['IPI'][2],wind_line[2]], color='orange', label="Wind Vector", linewidth=2, alpha=0.5)
     # Labels and title
     ax.set_title("3D Parafoil Path")

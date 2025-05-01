@@ -4,8 +4,8 @@ from guidance_v2 import guidance_update
 import logging
 # Simulation parameters
 actual_wind_vector = np.array([1, 1])  # some wind
-initial_position = np.array([50.0, 50.0, 500])
-initial_velocity = np.array([0.0, 0.0, -5.0])  # Downward velocity
+initial_position = np.array([0, 100, 500])
+initial_velocity = np.array([10, 0.0, -5.0])  # Downward velocity
 lookahead_distance = 20.0
 
 # control parameters
@@ -13,8 +13,8 @@ max_turn_rate = np.deg2rad(10)  # radians per step
 
 params = {
     'deployment_pos': initial_position,
-    'final_approach_height': 50,
-    'spirialing_radius': 5,
+    'final_approach_height': 70,
+    'spirialing_radius': 20,
     'update_rate': 0.1,
     'wind_unit_vector': np.array([1, 0]),
     'wind_magnitude': 0.0,
@@ -35,7 +35,7 @@ positions = [initial_position]
 velocities = [initial_velocity]
 
 # Simulate path
-num_steps = 1000
+num_steps = 1200
 dt = params['update_rate']  # time step
 state = [initial_position, initial_velocity, np.array([0, 0, 0])]
 
@@ -55,7 +55,7 @@ for _ in range(num_steps):
         estimated_wind_vector = params['wind_unit_vector'] * params['wind_magnitude']
         print(f"Estimated Wind: {[f'{w:.3g}' for w in estimated_wind_vector]}")
         print(f"Actual Wind: {[f'{w:.3g}' for w in actual_wind_vector]}")
-        print(f"ftp_centre: {[f'{w:.3g}' for w in params['FTP_centre']]}")
+        #print(f"ftp_centre: {[f'{w:.3g}' for w in params['FTP_centre']]}")
         break
 
     # ================== guidance update ================
@@ -85,17 +85,6 @@ for _ in range(num_steps):
              ]  # Update state
     positions.append(state[0])  # Store position for plotting
 
-def get_ideal_position(params, state):
-    """
-    Calculate the ideal position based on the current state and guidance parameters.
-    """
-    # Calculate the ideal position based on the current state and guidance parameters
-    ideal_position = np.array([state[0][0], state[0][1], params['final_approach_height']])
-    
-    # Adjust the ideal position based on the wind vector and other parameters
-    ideal_position += params['wind_unit_vector'] * params['wind_magnitude']
-    
-    return ideal_position
 # ================= Graphs ==================
 # Plotting (3D)
 from mpl_toolkits.mplot3d import Axes3D
@@ -116,7 +105,7 @@ def plot_3D_position(data,guidance_params,estimated_path = None):
     ax.scatter(guidance_params["deployment_pos"][0], guidance_params["deployment_pos"][1], guidance_params["deployment_pos"][2], color='red', label="Start Position")
     ax.scatter(guidance_params['IPI'][0], guidance_params['IPI'][1], guidance_params['IPI'][2], color='green', label="Impact Point Indicator (IPI)")
     ax.scatter(guidance_params['FTP_centre'][0], guidance_params['FTP_centre'][1], guidance_params['final_approach_height'], color='blue', label="Final Target Point (FTP)")
-    wind_line = guidance_params['IPI'] + np.array([guidance_params['wind_unit_vector'][0] * 100,guidance_params['wind_unit_vector'][1] * 100, 0])
+    wind_line = guidance_params['IPI'] + np.array([-guidance_params['wind_unit_vector'][0] * 100,guidance_params['wind_unit_vector'][1] * 100, 0])
     print(f"Wind Line: {wind_line}")
     ax.plot([guidance_params['IPI'][0], wind_line[0]],[guidance_params['IPI'][1], wind_line[1]],[guidance_params['IPI'][2],wind_line[2]], color='orange', label="Wind Vector", linewidth=2, alpha=0.5)
     # Labels and title
@@ -144,8 +133,6 @@ def plot_3D_position(data,guidance_params,estimated_path = None):
 
 positions = np.array(positions)
 
-
-
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 
@@ -154,9 +141,9 @@ ax.plot(positions[:, 0], positions[:, 1], positions[:, 2], label="Parafoil Path"
 ax.scatter(initial_position[0], initial_position[1], initial_position[2], color='red', label="Start Position")
 ax.scatter(params['IPI'][0], params['IPI'][1], params['IPI'][2], color='green', label="Impact Point Indicator (IPI)")
 ax.scatter(params['FTP_centre'][0], params['FTP_centre'][1], params['final_approach_height'], color='blue', label="Final Target Point (FTP)")
-wind_line = params['IPI'] + np.array([params['wind_unit_vector'][0] * 100,params['wind_unit_vector'][1] * 100, 0])
-print(f"Wind Line: {wind_line}")
-ax.plot([params['IPI'][0], wind_line[0]],[params['IPI'][1], wind_line[1]],[params['IPI'][2],wind_line[2]], color='orange', label="Wind Vector", linewidth=2, alpha=0.5)
+#wind_line = params['IPI'] + np.array([params['wind_unit_vector'][0] * 100,params['wind_unit_vector'][1] * 100, 0])
+#print(f"Wind Line: {wind_line}")
+#ax.plot([params['IPI'][0], wind_line[0]],[params['IPI'][1], wind_line[1]],[params['IPI'][2],wind_line[2]], color='orange', label="Wind Vector", linewidth=2, alpha=0.5)
 # Labels and title
 ax.set_title("3D Parafoil Path")
 ax.set_xlabel("X Position")
@@ -178,3 +165,16 @@ ax.set_xlim(x_center - max_range / 2, x_center + max_range / 2)
 ax.set_ylim(y_center - max_range / 2, y_center + max_range / 2)
 
 plt.show()
+
+# plot two d
+
+plt.plot(positions[:, 0], positions[:, 1], label='y = sin(x)')
+plt.scatter(initial_position[0], initial_position[1], color='red', label="Start Position")
+plt.scatter(params['IPI'][0], params['IPI'][1], color='green', label="Impact Point Indicator (IPI)")
+plt.scatter(params['FTP_centre'][0], params['FTP_centre'][1], color='blue', label="Final Target Point (FTP)")
+plt.title('x - y view of path')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.legend()
+plt.show()
+

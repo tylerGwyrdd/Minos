@@ -16,7 +16,7 @@ class ParafoilSimulation_6Dof:
         self.set_system_params(params)
         self.set_inputs(inputs)
         self.set_state(state)
-        
+
         # calculate the derivatives
         self.calculate_derivatives()
 
@@ -26,19 +26,33 @@ class ParafoilSimulation_6Dof:
         inputs:
             [flap deflection angles, wind vector]
         """
-        self.flap_l,self.flap_r = inputs[0]
+        self.set_actual_flaps(inputs[0])
         self.w = inputs[1] # wind vector in inertial frame
 
+    def set_actual_flaps(self, input):
+        """
+        set both actual and desired flaps"""
+        self.flap_l,self.flap_r = input
+        self.flap_l_desired,self.flap_r_desired = input
+        self.update_flaps(1) # doesnt matter, they be the same
+    
+    def set_desired_flaps(self, input):
+        self.flap_l_desired,self.flap_r_desired = input
+        
+    def update_flaps(self,dt):
+        """updates"""
+        max_rate = dt/self.flap_time_constant
+        self.flap_l += np.clip(self.flap_l_desired - self.flap_l, -max_rate, max_rate) 
+        self.flap_r += np.clip(self.flap_r_desired - self.flap_r, -max_rate, max_rate) 
         # calculate the flap deflection angles
         self.delta_a = self.flap_r - self.flap_l  # asymmetric flap deflection
         self.delta_s = 0.5*(self.flap_l + self.flap_r) # symmetric flap deflection
-
+    
     def set_state(self, state):
         self.p = state[0] # position in inertial frame
         self.vb = state[1] # velocity in body fixed frame
         self.eulers = state[2] # euler angles IN RADIANS of body in inertal frame
         self.angular_vel = state[3] # angular velocities in body fixed frame
-
         # update the transformations:
         self.update_kinematic_transforations()
         self.update_wind_transformations()
@@ -89,6 +103,11 @@ class ParafoilSimulation_6Dof:
         
         see: Yakimenko, Oleg A.. (2015). <i>Precision Aerial Delivery Systems - Modeling, Dynamics, and Control
         """
+        # ------------------- simulation params --------------
+        self.dt = 0.1
+        self.check_set_param(system_params, self.dt, "dt")
+
+        # -------------------- parafoil params
 
         # aerodynamic parameters, default values follow Snowflake PAD model.
         self.S = 1.0
@@ -108,6 +127,8 @@ class ParafoilSimulation_6Dof:
         self.m = 2.4 # mass of the system
         self.check_set_param(system_params,self.m, "m") # mass of the system
         self.Rp = np.array([0.0,0,-1.11]) # distance between parafoil and the center of mass for the system
+        
+        
         self.check_set_param(system_params,self.Rp, "Rp")
         
         self.I = np.array([[0.42,0,0.03],[0,0.4,0],[0.03,0,0.053]]) # moment of inertia of the system
@@ -115,6 +136,10 @@ class ParafoilSimulation_6Dof:
         self.check_set_param(system_params,self.I, "I") # moment of inertia of the system
 
         self.initial_pos = system_params['initial_pos'] # initial position of the system in inertial frame
+        
+        self.flap_time_constant = 1 # number of seconds to go from 0 flap to max flap
+        self.check_set_param(system_params,self.flap_time_constant, "flap_time_constant")
+        
         """"
         self.parafoil_mass = 0.0
         self.check_set_param(system_params,self.parafoil_mass, "parafoil_mass") # mass of parafoil
@@ -128,6 +153,7 @@ class ParafoilSimulation_6Dof:
         self.m = self.parafoil_mass + self.payload_mass # mass of entire system
 
         """
+
         # ________________ aerodynamic parameters ____________________
         # for drag
         self.CD = 0
@@ -186,7 +212,9 @@ class ParafoilSimulation_6Dof:
         return [self.p, self.vb, self.eulers, self.angular_vel]
     
     def get_inertial_position(self):
-        return self.initial_pos + np.array([1,1,-1]) @ self.p
+        ned_to_world = np.array([1, 1, -1])  # Flip Z-axis
+        inertial_pos = self.initial_pos + ned_to_world * self.p  # Element-wise multiplication
+        return inertial_pos
     
     def get_inertial_state(self):
         return[self.get_inertial_position(), self.body_to_inertial(self.vb), self.eulers, self.get_euler_rates()]
@@ -245,6 +273,10 @@ class ParafoilSimulation_6Dof:
         """
         Update the kinematic transformations based on the current state.
         """
+        if euler_angles is None:
+            euler_angles = self.eulers
+        if angular_vel is None:
+            angular_vel = self.angular_vel
         self.CDM = self.get_CDM(euler_angles)
         self.angular_vel_skew = self.get_angular_vel_skew(angular_vel)
         self.T_angularVel_to_EulerRates = self.get_angular_vel_to_EulerRates_matrix(euler_angles)

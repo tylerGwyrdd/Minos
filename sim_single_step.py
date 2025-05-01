@@ -2,23 +2,27 @@ import six_DoF_simulator as simulator
 import numpy as np
 from utils import rk4
 
-def single_step(dt, old_state = None, control_input = None):
+def single_step(dt, params, old_state = None, control_input = None, wind = None):
     """
     Simulate a single step of the 6-DoF simulator.
 
     Parameters:
     dt (float): The time step for the simulation.
-    old_state (np.ndarray): The previous state of the system.
-    If None, initializes to a default state.
-    control_input (np.ndarray): The control input to apply.
-    If None, initializes to a default input.
-
+    params (python dictionary): Sets up all the masses etc of the system. Main thing to note:
+    params['initial_pos'] = np.array([x,y,z]) - MUST BE SET TO THE POSITION WHERE PARAFOIL DEPLOYED IN WORLD FRAME e.g [100,200,500]
+    old_state (np.ndarray): The previous state of the system (BODY FRAME).
+    control_input list: [L-deflection, R-deflection] - The control input to apply.
+    If None, assumes there is no control input
+    wind (np.darray): 1x3 array of wind velocities [x_wind, y_wind, z_wind]
+    If none, assumes no wind
+    
     Returns:
-    np.ndarray: The new state after dt seconds of applying the control input.
+    new_state: the new state in the BODY FRAME
+    inertial_state: the new state in the WORLD FRAME!
     """
     # general stuff you can change if you want
-    wind = np.array([0, 0, 0]) # is there wind?
-    params = {} # mass, inertia, etc of system. dont change unless sure
+    if wind is None:
+        wind = np.array([0, 0, 0])
 
     # have we got a state to start from?
     if old_state is None:
@@ -35,4 +39,6 @@ def single_step(dt, old_state = None, control_input = None):
     sim = simulator.ParafoilSimulation_6Dof(params, old_state, [control_input, wind])
     # generate new state using rk4 ode solver
     new_state = rk4(old_state, sim.get_solver_derivatives, dt)
-    return new_state
+    sim.set_state(new_state)
+    inertial_state = sim.get_inertial_state()
+    return new_state, inertial_state

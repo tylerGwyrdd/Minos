@@ -4,13 +4,10 @@ import numpy as np
 import main
 import matplotlib.pyplot as plt
 
-def simulate_model(time_vector, initial_conditions, inputs, inertial = False, coefficients = None):
+def simulate_model(time_vector, initial_conditions, inputs, params, inertial = False, coefficients = None):
     """
     Run the 6-DOF simulator with the given coefficients and return the simulated states.
     """
-    params = {
-        'initial_pos': [0, 0, 0],
-    }
     states = []
     data = []
     input = [[inputs[0][0], inputs[1][0]], inputs[2][0]]
@@ -36,7 +33,6 @@ def simulate_model(time_vector, initial_conditions, inputs, inertial = False, co
         dt = t - time_vector[i - 1] if i > 0 else time_vector[1] - time_vector[0]
         new_state = rk4(state, sim.get_solver_derivatives, dt)
         sim.set_state(new_state)
-        sim.calculate_derivatives()
     return data, states
 
 
@@ -45,6 +41,9 @@ if __name__ == "__main__":
     print("Running simulation...")
     wind_vect = np.array([0, 0, 0])
     initial_conditions = np.array([np.array([0,0,0]), np.array([10,0,3]), np.array([0,0,0]), np.array([0,0,0])])
+    params = {
+        'initial_pos': [0, 0, 0],
+    }
     time_vector = np.linspace(0, 25, 250)  # Example time vector (0 to 10 seconds, 100 steps)
 
     L_input = np.zeros_like(time_vector)
@@ -63,7 +62,7 @@ if __name__ == "__main__":
     inputs = [L_input, R_input, wind_list]
     data = []
 
-    data, simulated_states = simulate_model(time_vector, initial_conditions, inputs, True)
+    data, simulated_states = simulate_model(time_vector, initial_conditions, params, inputs, True)
     # np.savez('test_data_1.npz', time_vector=time_vector, inputs=inputs, simulated_states=simulated_states)
     print(simulated_states)
 
