@@ -16,14 +16,56 @@ logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def simple_time_control(time):
     # Simple control logic for demonstration purposes
-    if time < 15:
+    time_interval = 20
+    if time < 1 * time_interval:
         return [0, 0]  # Flap deflections
-    elif time < 40:
+    elif time < 2* time_interval:
         return [0.0, 0.3]
+    elif time < 3 * time_interval:
+        return [0.0, 0.4]
+    elif time < 4 * time_interval:
+        return [0.0, 0.5]
+    elif time < 5 * time_interval:
+        return [0.0, 0.6]
+    elif time < 6 * time_interval:
+        return [0.0, 0.7]
+    elif time < 7 * time_interval:
+        return [0.0, 0.8]
+    elif time < 8 * time_interval:
+        return [0.0, 0.9]
+    elif time < 9 * time_interval:
+        return [0.0, 1]
     else:
-        return [0.0, 0.0]
+        return None
+    
+def run_simulation(sim, steps, dt):
+    data = []
+    t = 0
+    for i in range(steps): 
+        state = sim.get_state()
+        new_inputs = simple_time_control(t)
+        if new_inputs is None:
+            break
+        sim.set_actual_flaps(new_inputs)
+        # uses rk4 to work out how much derivititve to add - its is pretty good
+        new_state = rk4(state, sim.get_solver_derivatives, dt)
+        # update sim
+        sim.set_state(new_state)
 
-def run_simulation(sim, guidance_params, steps, dt):
+        # save the current data
+        data.append([
+            t, state, sim.angle_of_attack, sim.sideslip_angle,
+            sim.angular_acc, sim.acc, sim.CL, sim.CD, sim.Cl, sim.Cn, sim.Cm,
+            sim.F_aero, sim.F_g, sim.F_fictious, sim.M_aero, sim.M_f_aero, 
+            sim.M_fictious, sim.va, sim.w, [sim.flap_l, sim.flap_r],
+            [0, 0], sim.get_inertial_position(), 
+            sim.get_euler_rates()
+        ])
+        # update the time
+        t += dt
+    return data
+
+def run_simulation_with_guidance(sim, steps, dt, guidance_params):
     data = []
     t = 0
     for i in range(steps):
@@ -45,6 +87,7 @@ def run_simulation(sim, guidance_params, steps, dt):
         current_heading = state[2][2]
         current_euler_rate = inertial_state[3][2]
         desired_heading,_ = guidance_v2.guidance_update(guidance_params, inertial_state)
+        
         new_inputs = guidance_v2.PID_control(current_heading, desired_heading,current_euler_rate)
         # logging.info(f"Current heading: {current_heading:.2f}, Desired heading: {desired_heading:.2f}, new inputs: {new_inputs}")
         
@@ -71,13 +114,6 @@ def run_simulation(sim, guidance_params, steps, dt):
         ])
         # update the time
         t += dt
-        """        # Log every 10 steps
-                if i % 10 == 0:
-                    logging.info(f"t = {t:.3f}")
-                    logging.info("  Position: %s", state[0])
-                    logging.info("  Velocity (body): %s", state[1])
-                    logging.info("  Euler angles (deg): %s", np.degrees(state[2]))
-                    logging.info("  Angular velocity (deg/s): %s", np.degrees(state[3]))"""
     return data
 
 def plot_state_over_time(data, labels, title, ylabel, times):
@@ -152,7 +188,7 @@ def plot_selected_parameters(data, plots_to_show):
     if plots_to_show.get('Moments', False):
         plot_force_moment_components_shared(times, data, [14, 15, 16], ['M_aero', 'M_f_aero', 'M_fictious'], "Moment", 'Moment (Nm)')
 
-def main():
+def sim_with_guidance():
     # sim params
     # teperal resolution of the sim
     dt = 0.1
@@ -204,7 +240,7 @@ def main():
     sim = simulator.ParafoilSimulation_6Dof(sim_params, init_state, initial_inputs)
 
     # run the sim
-    data = run_simulation(sim,guidance_params, steps, dt)
+    data = run_simulation_with_guidance(sim,guidance_params, steps, dt)
     guidance_init_state = init_state
     guidance_init_state[0] = deployment_pos_inertial
     ideal_guidance_path = guidance_v2.ideal_guidance(ideal_guidance_params, wind, init_state, 10, steps)
@@ -246,6 +282,75 @@ def main():
     # lets generate ideal guidance path
 
     guidance_v2.plot_3D_position(inertial_positions,guidance_params, ideal_guidance_path)
+
+def just_physics_sim():
+       # sim params
+    # teperal resolution of the sim
+    dt = 0.1
+    # number of steps to run the sim for
+    steps = 2000 
+
+    # -------------- sim init -----------------------
+    # Note sim uses NED Coordinate system, so Z is up
+    init_body_pos=np.array([0, 0, 0])
+    init_body_vel=np.array([10, 0, 3]) # this is stable
+    init_eulers=np.array([0, 0, 0])
+    init_omega=np.array([0, 0, 0])
+    init_state = [init_body_pos,init_body_vel,init_eulers,init_omega]
+
+    deployment_pos_inertial = np.array([0, 0, 500])
+
+    wind = np.array([0, 0, 0])
+
+    initial_inputs = [[0.0, 0.0], wind]
+
+    # params: you can chase the specifics using this. its a dict
+    sim_params = {
+        'initial_pos': deployment_pos_inertial ,
+    }
+       # ----------------------- running --------------------------
+    # lets make the objects
+    sim = simulator.ParafoilSimulation_6Dof(sim_params, init_state, initial_inputs)
+
+    # run the sim
+    data = run_simulation(sim, steps, dt)
+    
+    # ------------------------ post ---------------------------
+    plots_to_show = {
+        'Position': True,
+        'Velocity': False,
+        'Acceleration': False,
+        'Euler Angles': True,
+        'Angular Velocity': False,
+        'Angular Acceleration': False,
+        'Angle of Attack': False,
+        'Sideslip Angle': True,
+        'Force Coefficients': False,
+        'Moment Coefficients': False,
+        'Forces': False,
+        'Moments': False,
+        'Airspeed Vector': True,
+        'Wind Vector': True,
+        'Deflection': True,
+        'Euler Rates': True,
+        'headings': True
+    }
+
+    plot_selected_parameters(data, plots_to_show)
+    eulers = np.degrees(np.array([entry[1][2] for entry in data]))
+    positions = np.array([entry[1][0] for entry in data])
+    inertial_positions = np.array([entry[21] for entry in data])
+    # Visualize parafoil pose
+    visualize_parafoil_pose(
+        euler_series=eulers,
+        position_series=positions,
+        interval=100,
+        slowmo_factor=1.0,
+        save_path=False
+    )
+
+def main():
+    just_physics_sim()
 
 if __name__ == "__main__":
     main()

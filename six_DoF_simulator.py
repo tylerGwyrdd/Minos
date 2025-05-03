@@ -16,7 +16,7 @@ class ParafoilSimulation_6Dof:
         self.set_system_params(params)
         self.set_inputs(inputs)
         self.set_state(state)
-
+        self.error = False
         # calculate the derivatives
         self.calculate_derivatives()
 
@@ -50,9 +50,9 @@ class ParafoilSimulation_6Dof:
     
     def set_state(self, state):
         self.p = state[0] # position in inertial frame
-        self.vb = state[1] # velocity in body fixed frame
+        self.vb = self.safe_clamp_vector(state[1]) # velocity in body fixed frame
         self.eulers = state[2] # euler angles IN RADIANS of body in inertal frame
-        self.angular_vel = state[3] # angular velocities in body fixed frame
+        self.angular_vel = self.safe_clamp_vector(state[3]) # angular velocities in body fixed frame
         # update the transformations:
         self.update_kinematic_transforations()
         self.update_wind_transformations()
@@ -90,7 +90,7 @@ class ParafoilSimulation_6Dof:
         """
         param = dict.get(param_name)
         if param == None:
-            print(f"Parameter '{param_name}' is not set. Using default value {var}.")
+            # print(f"Parameter '{param_name}' is not set. Using default value {var}.")
             return False
         elif type(var) != type(param):
             raise TypeError(f"Parameter '{param_name}' should be of type {type(var)}. Got {type(param)} instead.")
@@ -262,7 +262,10 @@ class ParafoilSimulation_6Dof:
             phi, theta, psi = self.eulers
         else:
             phi, theta, psi = euler_angles
-        
+        if abs(theta - np.pi/2) < 0.1:
+            self.error = True
+            # print("theta is close to 90.")
+            theta = np.pi/2 * 0.999
         return np.array([
             [1, np.sin(phi) * np.tan(theta), np.cos(phi) * np.tan(theta)],
             [0, np.cos(phi), -np.sin(phi)],
@@ -282,15 +285,26 @@ class ParafoilSimulation_6Dof:
         self.T_angularVel_to_EulerRates = self.get_angular_vel_to_EulerRates_matrix(euler_angles)
 
     def update_wind_transformations(self):
+        epsilon = 1e-8  # small value to prevent division by zero
         # calculate local airspeed in body fixed frame
         self.va = self.vb - self.body_to_inertial(self.w, True) # local airspeed in body fixed frame
-        
-        self.va_mag = np.linalg.norm(self.va) # magnitude of the local airspeed in body fixed frame
+        if np.all(np.isfinite(self.va)):
+            self.va_mag = np.linalg.norm(self.va) # magnitude of the local airspeed in body fixed frame
+        else:
+            self.error = True
+            #print(f"Warning: Invalid airspeed vector: va={self.va}, vb = {self.vb}")
+            self.va = np.array([epsilon,epsilon,epsilon])
+            self.va_mag = epsilon 
+            
 
-        # we also need to calculate the AoA and sideslip angle (radians)
-        self.angle_of_attack = np.arctan2(self.va[2],self.va[0])
 
-        self.sideslip_angle = np.arctan2(self.va[1],np.sqrt(self.va[0]**2 + self.va[2]**2))
+        # Angle of attack: arctangent of vertical to forward airspeed
+        self.angle_of_attack = np.arctan2(self.va[2], self.va[0] if abs(self.va[0]) > epsilon else epsilon * np.sign(self.va[0]))
+
+        # Sideslip angle: arctangent of lateral to horizontal (forward + vertical) airspeed
+        denom = np.sqrt(self.va[0]**2 + self.va[2]**2)
+        denom_safe = denom if denom > epsilon else epsilon
+        self.sideslip_angle = np.arctan2(self.va[1], denom_safe)
 
         # calculate the rotation matrix wind to body
         self.R_wb = np.array([
@@ -345,19 +359,20 @@ class ParafoilSimulation_6Dof:
         Fa_z = 0.5 * p_density * self.va_mag**2 * self.S * self.CL
 
         F_aero_A = np.array([Fa_x,Fa_y,Fa_z])
+        F_aero_A = self.safe_clamp_vector(F_aero_A)
         # rotate forces to the body frame and negify
         self.F_aero = - self.body_to_wind(F_aero_A, False)
         return self.F_aero
 
     def calculate_aero_moments(self):
         self.calculate_aero_moment_coeff()
-
+        
         L = 0.5 * p_density * self.va_mag**2 * self.S * self.b * self.Cl
         M = 0.5 * p_density * self.va_mag**2 * self.S * self.c * self.Cm
         N = 0.5 * p_density * self.va_mag**2 * self.S * self.b * self.Cn
-
         # since 
         M_aero_A = np.array([L,M,N])
+        M_aero_A = self.safe_clamp_vector(M_aero_A)
         # rotate moments to the body frame
         self.M_aero = self.body_to_wind(M_aero_A,True)
         self.M_aero = M_aero_A
@@ -388,7 +403,6 @@ class ParafoilSimulation_6Dof:
         M_total = M_aero + self.M_fictious
         I_inv = np.linalg.inv(self.I)
         self.angular_acc = np.dot(I_inv,M_total)
-
         return [self.acc,self.angular_acc]
 
     def calculate_apparent_mass_matrices(self):
@@ -497,3 +511,29 @@ class ParafoilSimulation_6Dof:
         # Reset the simulation state to the original
         self.set_state(old_state)
         return derivatives
+
+    def safe_clamp_vector(self, vec, max_abs=1e3):
+        """
+        Clamp a 3D vector to avoid NaN, inf, and excessively large values.
+
+        Parameters:
+            vec (np.ndarray): Input 3D vector.
+            max_abs (float): Maximum allowed absolute value for each component.
+
+        Returns:
+            np.ndarray: A safe, clamped 3D vector.
+        """
+        safe_vec = np.zeros(3)
+
+        for i in range(3):
+            val = vec[i]
+            if not np.isfinite(val):
+                self.error = True
+                safe_vec[i] = 0.0
+            elif abs(val) > max_abs:
+                self.error = True
+                safe_vec[i] = np.clip(val, -max_abs, max_abs)
+            else:
+                safe_vec[i] = val
+
+        return safe_vec

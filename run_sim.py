@@ -4,6 +4,33 @@ import numpy as np
 import main
 import matplotlib.pyplot as plt
 
+
+def bare_simulate_model(time_vector, initial_conditions, inputs, params, inertial = False, coefficients = None):
+    positions = [np.array([0,0,0]) for _ in time_vector]
+    input = [[inputs[0][0], inputs[1][0]], inputs[2][0]]
+    sim = six_DoF_simulator.ParafoilSimulation_6Dof(params, initial_conditions, input)
+    sim.set_coefficients(coefficients)
+    for i,t in enumerate(time_vector):
+        state = sim.get_state()
+        if inertial:
+            positions[i] = sim.get_inertial_position()
+        else:
+            positions[i] = sim.p
+        input = [[inputs[0][i], inputs[1][i]], inputs[2][i]]
+        sim.set_inputs(input)
+        dt = t - time_vector[i - 1] if i > 0 else time_vector[1] - time_vector[0]
+        new_state = rk4(state, sim.get_solver_derivatives, dt)
+        sim.set_state(new_state)
+        if sim.error is True:
+            # we reached error. No point continuing
+            break
+    return positions
+
+def sim_with_noise(time_vector, initial_conditions, inputs, params, inertial = False, coefficients = None):
+    gps_noise_std = np.array([0.2, 0.2, 0.2])  # standard deviations in meters
+    ideal_positions = bare_simulate_model(time_vector, initial_conditions, inputs, params, inertial, coefficients)
+    return ideal_positions + np.random.normal(0,gps_noise_std)
+
 def simulate_model(time_vector, initial_conditions, inputs, params, inertial = False, coefficients = None):
     """
     Run the 6-DOF simulator with the given coefficients and return the simulated states.
@@ -34,7 +61,6 @@ def simulate_model(time_vector, initial_conditions, inputs, params, inertial = F
         new_state = rk4(state, sim.get_solver_derivatives, dt)
         sim.set_state(new_state)
     return data, states
-
 
 if __name__ == "__main__":
     # Example usage
