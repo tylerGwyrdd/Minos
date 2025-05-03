@@ -6,14 +6,14 @@ import multiprocessing
 from single_step_sim import simulate_model 
 # --- Example: Coefficient-specific bounds (replace with your real ones) ---
 bounds = [
-    (-2.0, 2.0),  # Coefficient 1
-    (-1.5, 1.5),  # Coefficient 2
+    (0, 0.5),  # Coefficient 1
+    (0, 0.2),  # Coefficient 2
     (0.0, 0.5),   # Coefficient 3
-    (-0.5, 0.5),  # Coefficient 4
-    (-1.0, 1.0),  # Coefficient 5
-    (-2.0, 2.0),  # Coefficient 6
-    (0.0, 0.3),   # Coefficient 7
-    (-0.8, 0.8),  # Coefficient 8
+    (0, 0.15),  # Coefficient 4
+    (0, 1.0),  # Coefficient 5
+    (0, 0.8),  # Coefficient 6
+    (-0.5, 0),   # Coefficient 7
+    (-0.8, 0),  # Coefficient 8
     (-1.2, 1.2),  # Coefficient 9
     (-1.0, 1.0),  # Coefficient 10
     (0.0, 0.4),   # Coefficient 11
@@ -22,6 +22,27 @@ bounds = [
     (-1.5, 1.5),  # Coefficient 14
     (-0.5, 0.5),  # Coefficient 15
     (-3.0, 3.0)   # Coefficient 16
+]
+
+ideal_coefficients = [
+    0.3,
+    0.05,
+    0.3,
+    0.12,
+    0.9,
+    0.24,
+    -0.15,
+    -0.07,
+    -0.8,
+    -0.082,
+    -0.004,
+    0.3,
+    -0.5,
+    -1.7,
+    -0.002,
+    -0.082,
+    -0.27,
+    0.02
 ]
 # initial conditions: position, velocity, euler angles, angular velocity
 initial_conditions = np.array([np.array([0,0,0]), np.array([10,0,3]), np.array([0,0,0]), np.array([0,0,0])])
