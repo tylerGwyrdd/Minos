@@ -57,44 +57,54 @@ class ParafoilSimulation_6Dof:
         self.update_kinematic_transforations()
         self.update_wind_transformations()
 
-    def set_coefficients(self,coefficients = None):
+    def set_coefficients(self, coefficients=None):
         """
-        set the aerodynamic coefficients for the simulation.
+        Set the aerodynamic coefficients for the simulation.
+        Accepts either a list (in predefined order) or a dictionary (by name).
         """
         if coefficients is None:
             return
-        self.CDo = coefficients[0]
-        self.CDa = coefficients[1]
-        self.CD_sym = coefficients[2]
-        self.CLo = coefficients[3]
-        self.CLa = coefficients[4]
-        self.CL_sym = coefficients[5]
-        self.CYB = coefficients[6]
-        self.ClB = coefficients[7]
-        self.Clp = coefficients[8]
-        self.Clr = coefficients[9]
-        self.Cl_asym = coefficients[10]
-        self.Cmo = coefficients[11]
-        self.Cma = coefficients[12]
-        self.Cmq = coefficients[13]
-        self.CnB = coefficients[14]
-        self.Cn_p = coefficients[15]
-        self.Cn_r = coefficients[16]
-        self.Cn_asym = coefficients[17]
 
-    def check_set_param(self, dict, var, param_name):
+        # Handle dictionary input
+        if isinstance(coefficients, dict):
+            for name in [
+                "CDo", "CDa", "CD_sym", "CLo", "CLa", "CL_sym",
+                "CYB", "ClB", "Clp", "Clr", "Cl_asym", "Cmo",
+                "Cma", "Cmq", "CnB", "Cn_p", "Cn_r", "Cn_asym"
+            ]:
+                if name in coefficients:
+                    setattr(self, name, coefficients[name])
+            return
+
+        # Handle list input
+        if isinstance(coefficients, list) or isinstance(coefficients, tuple):
+            if len(coefficients) < 18:
+                raise ValueError("Coefficient list must have at least 18 values.")
+            (
+                self.CDo, self.CDa, self.CD_sym,
+                self.CLo, self.CLa, self.CL_sym,
+                self.CYB, self.ClB, self.Clp, self.Clr, self.Cl_asym,
+                self.Cmo, self.Cma, self.Cmq,
+                self.CnB, self.Cn_p, self.Cn_r, self.Cn_asym
+            ) = coefficients
+            return
+
+    def check_set_param(self, dict, param_name):
         """
         Check if the parameter is set in the dictionary and if its type matches the expected type.
-        
-        If not, raise an error.
+        If so, sets the instance variable self.<attr_name> to the value from the dictionary.
         """
         param = dict.get(param_name)
-        if param == None:
-            # print(f"Parameter '{param_name}' is not set. Using default value {var}.")
+        if param is None:
             return False
-        elif type(var) != type(param):
-            raise TypeError(f"Parameter '{param_name}' should be of type {type(var)}. Got {type(param)} instead.")
-        var = param
+        elif not hasattr(self, param_name):
+            raise AttributeError(f"Attribute '{param_name}' does not exist on the instance.")
+        elif type(getattr(self, param_name)) != type(param):
+            raise TypeError(f"Parameter '{param_name}' should be of type {type(getattr(self, param_name))}. Got {type(param)} instead.")
+        
+        setattr(self, param_name, param)
+
+        # print(f"Set {param_name} to {param}")
         return True
 
     def set_system_params(self,system_params):
@@ -105,40 +115,42 @@ class ParafoilSimulation_6Dof:
         """
         # ------------------- simulation params --------------
         self.dt = 0.1
-        self.check_set_param(system_params, self.dt, "dt")
+        self.check_set_param(system_params, "dt")
 
         # -------------------- parafoil params
 
         # aerodynamic parameters, default values follow Snowflake PAD model.
         self.S = 1.0
-        self.check_set_param(system_params, self.S, "S") # surface area of parafoil
+        self.check_set_param(system_params, "S") # surface area of parafoil
         self.c = 0.75
-        self.check_set_param(system_params, self.c, "c") # mean chord length
+        self.check_set_param(system_params, "c") # mean chord length
         #self.AR = 0.0
         #self.check_set_param(system_params, self.AR, "AR") # aspect ratio
         self.t = 0.075
-        self.check_set_param(system_params, self.t, "t") # thickness of the parafoil
+        self.check_set_param(system_params, "t") # thickness of the parafoil
         self.b = 1.35
-        self.check_set_param(system_params, self.b, "b") # wingspan of the parafoil
+        self.check_set_param(system_params, "b") # wingspan of the parafoil
         self.rigging_angle = np.radians(-12.0)
-        self.check_set_param(system_params, self.rigging_angle, "rigging_angle")
+        self.check_set_param(system_params, "rigging_angle")
 
         # system parameters
         self.m = 2.4 # mass of the system
-        self.check_set_param(system_params,self.m, "m") # mass of the system
+        self.check_set_param(system_params, "m") # mass of the system
         self.Rp = np.array([0.0,0,-1.11]) # distance between parafoil and the center of mass for the system
         
         
-        self.check_set_param(system_params,self.Rp, "Rp")
+        self.check_set_param(system_params, "Rp")
         
         self.I = np.array([[0.42,0,0.03],[0,0.4,0],[0.03,0,0.053]]) # moment of inertia of the system
         # if we have to do our own calculations, we need more info
-        self.check_set_param(system_params,self.I, "I") # moment of inertia of the system
-
-        self.initial_pos = system_params['initial_pos'] # initial position of the system in inertial frame
+        self.check_set_param(system_params, "I") # moment of inertia of the system
         
+
+        self.initial_pos = [0,0,0] # initial position of the system in inertial frame
+        self.check_set_param(system_params, "initial_pos")
+
         self.flap_time_constant = 1 # number of seconds to go from 0 flap to max flap
-        self.check_set_param(system_params,self.flap_time_constant, "flap_time_constant")
+        self.check_set_param(system_params, "flap_time_constant")
         
         """"
         self.parafoil_mass = 0.0
@@ -158,55 +170,55 @@ class ParafoilSimulation_6Dof:
         # for drag
         self.CD = 0
         self.CDo = 0.25
-        self.check_set_param(system_params,self.CDo, "CDo")
+        self.check_set_param(system_params, "CDo")
         self.CDa = 0.12
-        self.check_set_param(system_params,self.CDa, "CDa") # drag coefficient
+        self.check_set_param(system_params, "CDa") # drag coefficient
         self.CD_sym = 0.2
-        self.check_set_param(system_params,self.CD_sym, "CD_sym")
+        self.check_set_param(system_params, "CD_sym")
 
         # for lift
         self.CL = 0
         self.CLo = 0.091
-        self.check_set_param(system_params,self.CLo, "CL") # lift coefficient
+        self.check_set_param(system_params, "CL") # lift coefficient
         self.CLa = 0.90
-        self.check_set_param(system_params,self.CLa, "CLa") # lift coefficient changing due to angle of incidance
+        self.check_set_param(system_params, "CLa") # lift coefficient changing due to angle of incidance
         self.CL_sym = 0.2
-        self.check_set_param(system_params,self.CLa, "CL_sym") # lift coefficient changing due to angle of incidance
+        self.check_set_param(system_params, "CL_sym") # lift coefficient changing due to angle of incidance
         
         # for side force
         self.CYB = -0.23
-        self.check_set_param(system_params,self.CYB, "CYB") # side force coefficient
+        self.check_set_param(system_params, "CYB") # side force coefficient
 
         # for rolling
         self.Cl = 0
         self.ClB = -0.036 # coefficient due to sideslip angle
-        self.check_set_param(system_params,self.ClB, "clB")
+        self.check_set_param(system_params, "clB")
         self.Clp = -0.84
-        self.check_set_param(system_params,self.Clp, "Clp")
+        self.check_set_param(system_params,"Clp")
         self.Clr = -0.082
-        self.check_set_param(system_params,self.Clr, "Clr")
+        self.check_set_param(system_params,"Clr")
         self.Cl_asym = -0.0035 # coefficient due to asymmetric flap deflection
-        self.check_set_param(system_params,self.Cl_asym, "Cl_asym")
+        self.check_set_param(system_params, "Cl_asym")
 
         # for pitching
         self.Cm = 0
         self.Cmo = 0.35 # coefficient at zero lift
-        self.check_set_param(system_params,self.Cmo, "Cmo")
+        self.check_set_param(system_params, "Cmo")
         self.Cma = -0.72 # coefficient due to angle of incidance
-        self.check_set_param(system_params,self.Cma, "Cma")
+        self.check_set_param(system_params, "Cma")
         self.Cmq = -1.49
-        self.check_set_param(system_params,self.Cmq, "Cmq") # coefficient due to pitch rate
+        self.check_set_param(system_params, "Cmq") # coefficient due to pitch rate
 
         # for yawing
         self.Cn = 0
         self.CnB = -0.0015 # coefficient due to sideslip angle
-        self.check_set_param(system_params,self.CnB, "CnB")
+        self.check_set_param(system_params, "CnB")
         self.Cn_p = -0.082 # coefficient due to roll rate
-        self.check_set_param(system_params,self.Cn_p, "Cn_p")
+        self.check_set_param(system_params, "Cn_p")
         self.Cn_r = -0.27
-        self.check_set_param(system_params,self.Cn_r, "Cn_r") # coefficient due to yaw rate
+        self.check_set_param(system_params, "Cn_r") # coefficient due to yaw rate
         self.Cn_asym = 0.0115
-        self.check_set_param(system_params,self.Cn_asym, "Cn_asym") # coefficient due to asymmetric flap deflection           
+        self.check_set_param(system_params, "Cn_asym") # coefficient due to asymmetric flap deflection           
             
     def get_state(self):
         return [self.p, self.vb, self.eulers, self.angular_vel]
@@ -374,7 +386,7 @@ class ParafoilSimulation_6Dof:
         M_aero_A = np.array([L,M,N])
         M_aero_A = self.safe_clamp_vector(M_aero_A)
         # rotate moments to the body frame
-        self.M_aero = self.body_to_wind(M_aero_A,True)
+        # self.M_aero = self.body_to_wind(M_aero_A,True)
         self.M_aero = M_aero_A
         return self.M_aero
     
@@ -393,16 +405,16 @@ class ParafoilSimulation_6Dof:
 
 
         # calculate the aerodynamic moments
-        M_aero = self.calculate_aero_moments()
+        self.calculate_aero_moments()
         #print("     M_aero: ", M_aero)
         # calculate the moments due to aerodynamic forces
         self.M_f_aero = np.cross(self.Rp,F_aero)
         #print("     M_f_aero: ", M_f_aero)
         # calculate the anglular acceleration
         self.M_fictious = - np.dot(self.angular_vel_skew, np.dot(self.I, self.angular_vel))
-        M_total = M_aero + self.M_fictious
+        self.M_total = self.M_aero + self.M_fictious
         I_inv = np.linalg.inv(self.I)
-        self.angular_acc = np.dot(I_inv,M_total)
+        self.angular_acc = np.dot(I_inv,self.M_total)
         return [self.acc,self.angular_acc]
 
     def calculate_apparent_mass_matrices(self):

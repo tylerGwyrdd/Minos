@@ -19,32 +19,20 @@ initial_conditions = np.array([
     np.array([0, 0, 0]),
     np.array([0, 0, 0])
 ])
-
-if os.path.exists("shared_data.npz"):
-    data = np.load("shared_data.npz", allow_pickle=True)
-    time_vector = data['time_vector']
-    inputs = data['inputs'].tolist()
-    real_data = data['real_data']
-else:
-    raise FileNotFoundError("shared_data.npz not found.")
-
+t_end = 50
+time_vector = np.linspace(0, t_end, t_end * 10)
 
 # Step 1: Independent optimization of each coefficient
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
 NGENS = 100
-NPOP = 20
+NPOP = 10
 
-def make_toolbox(names, lows, highs):
-    n_params = len(names)
-
+def make_toolbox(names, lows, highs, real_data, inputs):
     toolbox = base.Toolbox()
-
     toolbox.register("individual", 
                      lambda: creator.Individual([random.uniform(l, h) for l, h in zip(lows, highs)]))
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("mate", tools.cxSimulatedBinaryBounded, eta=10.0, low=lows, up=highs)
     toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.5, low=lows, up=highs, indpb=1.0)
@@ -62,14 +50,12 @@ def make_toolbox(names, lows, highs):
     toolbox.register("evaluate", evaluate)
     return toolbox
 
-def optimize_coefficients(names):
+def  optimize_coefficients(names, real_data, inputs):
     import time
-
-    # Get lower and upper bounds per coefficient
     lows = [bounds_dict[name][0] for name in names]
     highs = [bounds_dict[name][1] for name in names]
 
-    toolbox = make_toolbox(names, lows, highs)
+    toolbox = make_toolbox(names, lows, highs, real_data, inputs)
     pop = toolbox.population(n=NPOP)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values[0])
@@ -84,6 +70,8 @@ def optimize_coefficients(names):
     actual_errors = []
 
     for gen in range(NGENS):
+        if gen % 10 == 0:
+            print(f"run: {names} is on generation: {gen}")
         offspring = algorithms.varAnd(pop, toolbox, cxpb=0.5, mutpb=0.3)
         fits = toolbox.map(toolbox.evaluate, offspring)
         for fit, ind in zip(fits, offspring):
@@ -93,7 +81,6 @@ def optimize_coefficients(names):
         record = stats.compile(pop)
         logbook.record(gen=gen, nevals=len(pop), **record)
 
-        # Track individual coefficient errors
         best_ind = tools.selBest(pop, 1)[0]
         actual_errors.append(TSGA_utils.evaluate_partial_coeffs_error(best_ind, names))
 
@@ -110,23 +97,14 @@ def optimize_coefficients(names):
         "time_seconds": elapsed_time
     }
 
-def wrapped_optimize(names):
-    result = optimize_coefficients(names)
+def wrapped_optimize(args):
+    names, real_data, inputs = args
+    result = optimize_coefficients(names, real_data, inputs)
     return (tuple(names), result)
 
 if __name__ == '__main__':
-    t_end = 50
-    time_vector = np.linspace(0, t_end, t_end * 10)
-    l_input, r_input = TSGA_utils.generate_inputs(time_vector)
     wind_vect = np.array([0, 0, 0])
     wind_list = [wind_vect.copy() for _ in range(time_vector.size)]
-    inputs = [l_input, r_input, wind_list]
-    real_data = run_sim.sim_with_noise(time_vector, initial_conditions, inputs, params, True, [ideal_coeffs[k] for k in coeff_names])
-    np.savez("shared_data.npz", time_vector=time_vector, inputs=np.array(inputs, dtype=object), real_data=np.array(real_data))
-    print("__________________STARTING_________________")
-    multiprocessing.freeze_support()
-
-    # Define groups of coefficient names to optimize together
     grouped_names = [
         ["CDo", "CDa", "CYB", "CLo", "CLa"],
         ["CD_sym", "CL_sym", "Cl_asym", "Cn_asym"],
@@ -135,10 +113,27 @@ if __name__ == '__main__':
         ["CnB", "Cn_p", "Cn_r"]
     ]
 
-    with multiprocessing.Pool() as pool:
-        results = pool.map(wrapped_optimize, grouped_names)
+    real_datasets = []
+    inputs = []
+    left, right = TSGA_utils.generate_straight_flight(time_vector)
+    inputs.append([left, right, wind_list])
+    left, right = TSGA_utils.genertate_spirial_flight(time_vector)
+    inputs.append([left, right, wind_list])
+    inputs.append([left, right, wind_list])
+    inputs.append([left, right, wind_list])
+    inputs.append([left, right, wind_list])
 
-    # Collect results into dictionaries
+    real_datasets.append(TSGA_utils.generate_real_data(time_vector, inputs[0][0], inputs[0][1], wind_vect, params, initial_conditions))
+    real_datasets.append(TSGA_utils.generate_real_data(time_vector, inputs[1][0], inputs[1][1], wind_vect, params, initial_conditions))
+    real_datasets.append(TSGA_utils.generate_real_data(time_vector, inputs[1][0], inputs[1][1], wind_vect, params, initial_conditions))
+    real_datasets.append(TSGA_utils.generate_real_data(time_vector, inputs[1][0], inputs[1][1], wind_vect, params, initial_conditions))
+    real_datasets.append(TSGA_utils.generate_real_data(time_vector, inputs[1][0], inputs[1][1], wind_vect, params, initial_conditions))
+    
+    tasks = list(zip(grouped_names, real_datasets, inputs))
+    print("RUNNIN")
+    with multiprocessing.Pool() as pool:
+        results = pool.map(wrapped_optimize, tasks)
+
     best_coeffs = {group: res["best_values"] for group, res in results}
     metrics = {
         group: {
@@ -148,10 +143,10 @@ if __name__ == '__main__':
         }
         for group, res in results
     }
-    with open("tsga_step1_best.json", "w") as f:
+    with open("modified_tsga_best_coeffs.json", "w") as f:
         json.dump(best_coeffs, f, indent=4)
 
-    with open("tsga_step1_metrics.json", "w") as f:
+    with open("modified_tsga_metrics.json", "w") as f:
         json.dump(metrics, f, indent=4)
 
     print("Step 1 complete. Best coefficients written to tsga_step1_best.json")

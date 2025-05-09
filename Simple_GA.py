@@ -7,6 +7,9 @@ import run_sim
 import json
 import os
 import numbers
+import time
+import TSGA_utils
+
 # ------------- Initalising Vars ------------
 
 snowflake_coefficients = [
@@ -89,12 +92,7 @@ except Exception as e:
     real_data = None
     raise RuntimeError(f"Failed to load shared data: {e}") from e
 
-def evaluate_actual(coefficients):
-    percent_errors = [
-        abs((c - ideal) / ideal) * 100 if ideal != 0 else 0
-        for c, ideal in zip(coefficients, ideal_coefficients)
-    ]
-    return sum(percent_errors) / len(percent_errors)
+
 
 # --- Fitness function ---
 def evaluate(coefficients):
@@ -128,6 +126,7 @@ def generate_individual():
 
 # Custom mutation respecting bounds
 def mutate_individual(individual, eta=0.5, indpb=0.2):
+    individual = clamp_individual(individual)
     # Apply polynomial mutation with fallback for complex values
     for i, (low, up) in enumerate(bounds):
         if random.random() < indpb:
@@ -143,11 +142,16 @@ def mutate_individual(individual, eta=0.5, indpb=0.2):
                 individual[i] = random.uniform(low, up)
     return individual,
 
+
 # Clamp individual after mating to keep within bounds
 def clamp_individual(individual):
     for i, (low, up) in enumerate(bounds):
         individual[i] = max(min(individual[i], up), low)
     return individual
+
+
+
+
 
 # --- DEAP setup ---
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
@@ -173,29 +177,9 @@ logbook.header = ["gen", "evals", "avg", "std", "min", "max"]
 
 if __name__ == '__main__':
     # ------ generate the real data ----------------
-    def generate_inputs(time_vector):
-        left_input = []
-        right_input = []
-        for t in time_vector:
-            if t < 10:
-                left_input.append(0)
-                right_input.append(0)
-            elif t < 20:
-                left_input.append(0.2)
-                right_input.append(0)
-            elif t < 30:
-                left_input.append(0)
-                right_input.append(0)
-            elif t < 40:
-                left_input.append(0)
-                right_input.append(0.2)           
-            else:
-                left_input.append(0.2)
-                right_input.append(0.2)
-        return left_input,right_input
     t_end = 50
     time_vector = np.linspace(0, t_end, t_end * 10)
-    l_input, r_input = generate_inputs(time_vector)
+    l_input, r_input = TSGA_utils.generate_complete_flight(time_vector)
     wind_vect = np.array([0, 0, 0])
     wind_list = [wind_vect.copy() for _ in range(time_vector.size)]
     inputs = [l_input, r_input, wind_list]
@@ -208,17 +192,17 @@ if __name__ == '__main__':
     toolbox.register("map", pool.map)
 
     population = toolbox.population(n=20)
-    NGEN = 100
+    NGEN = 1000
     actual_error = []
     elite_size = 2
     mutp_change = 0.4
     mutp_base = 0.2
     num_to_regenerate = 1  # number of worst individuals to replace
-
+    run_start_time = time.time()
     for gen in range(NGEN):
+
         # generate and mutate the population to generate offspring
         offspring = algorithms.varAnd(population, toolbox, cxpb=0.5, mutpb= mutp_base + mutp_change * ( 1 - gen / NGEN))
-        offspring = [clamp_individual(ind) for ind in offspring]
         # calculate fitness of the offspring
         fits = toolbox.map(toolbox.evaluate, offspring)
         for fit, ind in zip(fits, offspring):
@@ -233,23 +217,29 @@ if __name__ == '__main__':
         # get the elites of this population
         elites = tools.selBest(population, elite_size)
 
-
-
         # --------- stats -------------------
+        start_time = time.time()
         best = elites[0]
-        actual_error.append(evaluate_actual(best))
+        actual_error.append(TSGA_utils.evaluate_coeffs_error(best))
         # Record and print statistics
         record = stats.compile(population)
         logbook.record(gen=gen, evals=len(population), **record)
         print(logbook.stream)
-
+        
+        #-------------- Ensure diversity ----------
         # replace the worst individuals
         worst = tools.selWorst(population, num_to_regenerate)
         regenerated = [toolbox.individual() for _ in range(num_to_regenerate)]
         # replace worst individuals in offspring
         for w, r in zip(worst, regenerated):
             population[population.index(w)] = r
-        
+    
+
+
+
+
+    # ------------------------------------------------------------------
+
     best_ind = tools.selBest(population, 1)[0]
     print('Best Coefficients:')
     for i, coeff in enumerate(best_ind):

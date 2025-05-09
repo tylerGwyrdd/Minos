@@ -1,10 +1,12 @@
 import numpy as np
 import logging
-from wind_estimation import least_squares_wind_calc
+from wind_estimation import WindRLS
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def smooth_heading_to_line_with_wind(position, line_point, line_direction, lookahead_distance, wind_vector, airspeed):
+def smooth_heading_to_line_with_wind(position, line_point, 
+                                     line_direction, lookahead_distance, wind_vector, airspeed):
     """
     Compute the heading required to move toward the lookahead point, considering wind.
     """
@@ -52,7 +54,10 @@ def guidance_update(params, state):
     flare_magnitude = 0
     # Get the current position from the simulator
     position, current_velocity, current_height, current_heading = update_kinematics(params, state)
-    
+
+    #params["wind_v_list"].append(current_velocity)
+    #wind_estimate = least_squares_wind_calc(params["wind_v_list"])
+
     # check that we will make it to the IPI
     if params["mode"] != "Final Approach":
         # easy
@@ -79,6 +84,8 @@ def guidance_update(params, state):
 
     # get estimate of time until FTP height reached
     time_to_FTP = (current_height - params["final_approach_height"]) / params["sink_velocity"]
+    spiral_centre_current = params["FTP_centre"] - time_to_FTP * params["wind_unit_vector"] * params["wind_magnitude"]
+    
     if time_to_FTP  < 0:
         # we have hit FTP
         params["mode"] = "Final Approach"
@@ -93,6 +100,14 @@ def guidance_update(params, state):
             flare_magnitude = 1
 
     elif params["mode"] == "initialising":
+
+        params["RLS"].update(current_velocity[0],current_velocity[1])
+        wind_estimate = params["RLS"].get_wind_estimate()
+        update_wind(params, wind_estimate)
+
+       # params["wind_v_list"].append(current_velocity)
+       # wind_estimate = least_squares_wind_calc(params["wind_v_list"])
+       # update_wind(params,wind_estimate)   
         if params["initialised"] == False:
             # set the start heading for the wind estimation
             print("SETTING STARTING HEADING")
@@ -103,15 +118,14 @@ def guidance_update(params, state):
         if state[2][2] - params["start_heading"] > np.deg2rad(360):
             print("Generating critical points")
             # get the wind estimate
-            wind_estimate = least_squares_wind_calc(params["wind_v_list"])
-            update_wind(params,wind_estimate)
+            #wind_estimate = least_squares_wind_calc(params["wind_v_list"])
+            #update_wind(params,wind_estimate)
             # update the FTP centre
             params["mode"] = "homing"
             position, current_velocity, current_height, current_heading = update_kinematics(params, state)
-            
         else:
             print("Initialising")
-            params["wind_v_list"].append(current_velocity)
+            # params["wind_v_list"].append(current_velocity)
             # keep going in a circle
             angular_vel = params["horizontal_velocity"] / params["spirialing_radius"]
             delta_heading = angular_vel * params["update_rate"]
@@ -122,8 +136,11 @@ def guidance_update(params, state):
     # initialising mode could've been set to homing mode in the last update, better check
     if params["mode"] == "homing":
         print("Homing")
-        # calculate where the spiral centre is
-        spiral_centre_current = params["FTP_centre"] - time_to_FTP * params["wind_unit_vector"] * params["wind_magnitude"]
+
+        params["RLS"].update(current_velocity[0],current_velocity[1])
+        wind_estimate = params["RLS"].get_wind_estimate()
+        update_wind(params, wind_estimate)
+
         # work out the distance and heading to get to this point
         vector_to_centre = spiral_centre_current - position
         # perpendicular vector to the wind direction
@@ -135,10 +152,6 @@ def guidance_update(params, state):
         params["desired_heading"],_ = compute_required_heading(params["wind_unit_vector"] * params["wind_magnitude"], params["horizontal_velocity"], vector_to_tangent)
         # calculate the heading
         params["desired_heading"] = wrap_angle(params["desired_heading"])
-
-        # Extract needed values
-        spiral_centre_current = spiral_centre_current
-        ipi_point = params["IPI"][:2]  # Assuming IPI is a 3D point and we only need the 2D position
 
         """        # Plot setup
         plt.figure(figsize=(8, 8))
@@ -190,12 +203,18 @@ def guidance_update(params, state):
 
         # Check if we need to start turning into the final approach
         if distance_to_tangent < 1.2 * params["spirialing_radius"]:
-            print("Entering final approach mode")
             params["mode"] = "energy_management"
 
     # homing mode could've been set to energy management mode in the last update, better check
     if params["mode"] == "energy_management":
+            
             print("Energy Management")
+            dist_to_CTP = np.linalg.norm(np.subtract(position, spiral_centre_current))
+            if dist_to_CTP > 5 * params["spirialing_radius"]:
+                params["mode"] = "homing"
+            #params["wind_v_list"].append(current_velocity)
+           # wind_estimate = least_squares_wind_calc(params["wind_v_list"])
+            #update_wind(params,wind_estimate)
             # keep going in a circle
             angular_vel = params["horizontal_velocity"] / params["spirialing_radius"]
             delta_heading = angular_vel * params["update_rate"]
@@ -215,7 +234,7 @@ def update_wind(params, wind_vector):
     params["wind_magnitude"] = np.linalg.norm(wind_2d)
     params["wind_unit_vector"] = wind_2d / params["wind_magnitude"]
     params["wind_heading"] = np.arctan2(wind_2d[1], wind_2d[0])
-    if params["wind_magnitude"] < 0.5:
+    if params["wind_magnitude"] < 0.3:
         params["wind_magnitude"] = 0.0
         params["wind_unit_vector"] = np.array([1, 0])
         params["wind_heading"] = 0.0
@@ -230,22 +249,25 @@ def update_kinematics(params, state):
     current_heading = wrap_angle(state[2][2])
     if params["mode"] != "initialising":
         time = params["final_approach_height"] / params["sink_velocity"]
-        params["FTP_centre"] = params["IPI"][:2] + (params["horizontal_velocity"] - params["wind_magnitude"])  * time * params["wind_unit_vector"] - params["wind_unit_vector"] * 2 * params["spirialing_radius"]
+        params["FTP_centre"] = params["IPI"][:2] + (params["horizontal_velocity"] - params["wind_magnitude"])  * time * params["wind_unit_vector"]
     return position, current_velocity, current_height, current_heading
 
 def compute_required_heading(wind_vector, airspeed, target_vector):
     """
     Calculate the required heading angle to follow the desired vector in wind.
-
+    Uses wind triangle, taking norms and solving quadratic for ground speed along 
+    desired vector. 
     Args:
-        wind_vector (tuple or list): (w_x, w_y), wind vector in m/s.
-        airspeed (float): Airspeed of the parafoil in m/s.
-        target_vector (tuple or list): (d_x, d_y), vector pointing to the desired target.
+        wind_vector (list): (w_x, w_y), wind vector in m/s.
+        airspeed (float): Airspeed of the parafoil  in m/s.
+        target_vector (list): (d_x, d_y), vector pointing to the desired target.
 
     Returns:
-        float: Required heading angle in radians (0 is east, pi/2 is north).
+        float: Required heading angle in radians.
         np.ndarray: Air velocity vector (v_a_x, v_a_y).
     """
+
+    # format and normalise
     w = np.array(wind_vector)
     d = np.array(target_vector)
     d_hat = d / np.linalg.norm(d)
