@@ -4,26 +4,36 @@ import numpy as np
 import main
 import matplotlib.pyplot as plt
 
-def bare_simulate_model(time_list, initial_conditions, inputs, params, inertial = False, coefficients = None):
+def bare_simulate_model(time_list, initial_conditions, inputs, params, inertial = False, coefficients = None, broke_on = True):
     """
     time list : list of steps in seconds
     initial_conditions: starting state vector (body frame)
     inputs: [left, right, wind]
     coefficients: ORDERDED or as DICTIONARY
     """
-    if inertial:
-        positions = [np.array(params['initial_pos']) for _ in time_list]
-    else:
-        positions = [np.array([0,0,0]) for _ in time_list]
+    positions = []
+    if broke_on is False:
+        if inertial:
+            positions = [np.array(params['initial_pos']) for _ in time_list]
+        else:
+            positions = [np.array([0,0,0]) for _ in time_list]
     input = [[inputs[0][0], inputs[1][0]], inputs[2][0]]
     sim = six_DoF_simulator.ParafoilSimulation_6Dof(params, initial_conditions, input)
+   # print("coeffs = ",coefficients)
     sim.set_coefficients(coefficients)
     for i,t in enumerate(time_list):
         state = sim.get_state()
         if inertial:
-            positions[i] = sim.get_inertial_position()
+            if broke_on is False:
+                positions[i] = sim.get_inertial_position()
+            else:
+                positions.append(sim.get_inertial_position())
         else:
-            positions[i] = sim.p
+            if broke_on is False:
+                positions[i] = sim.p
+            else:
+                positions.append(sim.p)
+
         input = [[inputs[0][i], inputs[1][i]], inputs[2][i]]
         sim.set_inputs(input)
         dt = t - time_list[i - 1] if i > 0 else time_list[1] - time_list[0]
@@ -32,14 +42,53 @@ def bare_simulate_model(time_list, initial_conditions, inputs, params, inertial 
         if sim.error is True:
             # we reached error. No point continuing
             # print("hello")
-            return positions, t
+            if broke_on:
+                return positions, i
     
-    return positions, time_list[-1]
+    return positions, len(time_list)
 
 def sim_with_noise(time_vector, initial_conditions, inputs, params, inertial = False, coefficients = None):
     gps_noise_std = np.array([0.2, 0.2, 0.2])  # standard deviations in meters
     ideal_positions = bare_simulate_model(time_vector, initial_conditions, inputs, params, inertial, coefficients)
     return ideal_positions + np.random.normal(0,gps_noise_std)
+
+def sim_state_with_noise(time_vector,initial_conditions,inputs,params,inertial = False, coefficients = None):
+    ideal_states, broken = multi_obj_sim(time_vector, initial_conditions, inputs, params, inertial, coefficients)
+    noisy_states = [
+        [
+            state[0] + np.random.normal(0, 0.1, size=3),  # position noise
+            state[1] + np.random.normal(0, 0.1, size=3),  # velocity noise
+            state[2] + np.random.normal(0, 0.1, size=3),  # attitude noise
+            state[3] + np.random.normal(0, 0.1, size=3),  # angular velocity noise
+        ]
+        for state in ideal_states
+    ]
+    return noisy_states,broken
+
+def multi_obj_sim(time_vector,initial_conditions,inputs,params,inertial = False, coefficients = None):
+    """
+    Run the 6-DOF simulator with the given coefficients and return the simulated states.
+    """
+    states = []
+    input = [[inputs[0][0], inputs[1][0]], inputs[2][0]]
+    sim = six_DoF_simulator.ParafoilSimulation_6Dof(params, initial_conditions, input)
+    sim.set_coefficients(coefficients)
+    for i,t in enumerate(time_vector):
+        state = sim.get_state()
+        # get state
+        if inertial:
+            states.append(sim.get_inertial_state())
+        else:
+            states.append(state)
+        input = [[inputs[0][i], inputs[1][i]], inputs[2][i]]
+        sim.set_inputs(input)
+        dt = t - time_vector[i - 1] if i > 0 else time_vector[1] - time_vector[0]
+        new_state = rk4(state, sim.get_solver_derivatives, dt)
+        if sim.error is True:
+            # we reached error. No point continuing
+            return states, i
+        sim.set_state(new_state)
+    return states, len(time_vector)
 
 def simulate_model(time_vector, initial_conditions, inputs, params, inertial = False, coefficients = None):
     """

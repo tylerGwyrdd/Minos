@@ -29,9 +29,10 @@ creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
 NGENS = 100
-NPOP = 30
+NPOP = 20
 
 def unique_individuals(pop):
+    """ work out how close genes are between individuals and return the number of different individuals"""
     return len(set(tuple(round(g, 5) for g in ind) for ind in pop))
 
 def compute_genome_variance(population):
@@ -43,15 +44,14 @@ def compute_genome_variance(population):
 
 # Custom individual generator based on bounds
 def generate_individual_from_set(names):
-    std_dev = 0.5
+    """creates from set. Generates individual with just the named coeffs as genes"""
+    std_dev = 0.01
     base_point = [aero_coeffs[name] for name in names]
-
     return creator.Individual([
         min(max(np.random.normal(loc=base, scale=max(abs(base * std_dev), 1e-3)),
                 bounds_dict[name][0]), bounds_dict[name][1])
         for name, base in zip(names, base_point)
     ])
-
 
 def make_toolbox(names, lows, highs, real_data, inputs):
     toolbox = base.Toolbox()
@@ -59,20 +59,19 @@ def make_toolbox(names, lows, highs, real_data, inputs):
     toolbox.register("individual_uniform", 
                      lambda: creator.Individual([random.uniform(l, h) for l, h in zip(lows, highs)]))
     toolbox.register("individual_gauss", lambda: generate_individual_from_set(names))
-
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual_uniform)
-    toolbox.register("mate", tools.cxSimulatedBinaryBounded, eta=0.5, low=lows, up=highs)
-    toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.5, low=lows, up=highs, indpb=1)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual_gauss)
+    toolbox.register("mate", tools.cxSimulatedBinaryBounded, eta=10, low=lows, up=highs)
+    toolbox.register("mutate", tools.mutPolynomialBounded, eta=10, low=lows, up=highs, indpb=1)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     def evaluate(individual):
-        coeffs = aero_coeffs.copy()
+        coeffs = ideal_coeffs.copy()
         for i, name in enumerate(names):
            coeffs[name] = individual[i]
         ordered_coeffs = [coeffs[k] for k in coeff_names]
 
         simulated, broke  = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, ordered_coeffs)
-        error = np.linalg.norm(np.square(simulated) - np.square(np.array(real_data))) * (t_end - broke + 1)
+        error = np.linalg.norm(np.square(simulated) - np.square(np.array(real_data))) / (broke * 10)
         return (error,) if np.isfinite(error) else (1e6,)
 
     toolbox.register("evaluate", evaluate)
@@ -110,7 +109,7 @@ def optimize_coefficients(names, real_data, inputs):
 
     for gen in range(NGENS):
         mutation_chance = mutp_base + mutp_change * ( 1 - gen / NGENS)
-        offspring = algorithms.varAnd(pop, toolbox, cxpb=0.5, mutpb = mutation_chance)
+        offspring = algorithms.varAnd(pop, toolbox, cxpb=0.5, mutpb = 1)
         fits = toolbox.map(toolbox.evaluate, offspring)
         for fit, ind in zip(fits, offspring):
             ind.fitness.values = fit
@@ -135,11 +134,7 @@ def optimize_coefficients(names, real_data, inputs):
             print(f"Run: {names} | Gen: {gen} | Best: {best:.6f} | Avg: {avg:.6f} | Std: {std:.6f} | GenomeVar: {genome_var:.6f} | Unique individuals: {uniq} / {len(pop)}")
         if gen % 100 == 0 and gen != 0:
             for i, name in enumerate(names):
-                
                 print(f"Best for {name}: {hof[0][i]:.6f} ideal: {ideal_coeffs[name]:.6f} ")
-
-           
-        
 
         logbook.record(gen=gen, nevals=len(pop), **record)
         actual_errors.append(TSGA_utils.evaluate_partial_coeffs_error(elites[0], names))
@@ -158,11 +153,12 @@ def optimize_coefficients(names, real_data, inputs):
         coeffs[name] = best_vals[i]
     ordered_coeffs = [coeffs[k] for k in coeff_names]
     # Convert to ordered list of values matching the order of `names`
-    sim_pos, died = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, ordered_coeffs)
+    sim_pos, died = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, ordered_coeffs, True)
+
     print(died)
-    TSGA_utils.plot_3D_position(sim_pos)
+    TSGA_utils.plot_3D_position_scatter(sim_pos)
     #TSGA_utils.plot_3D_geometry_comparision(time_vector,real_data, initial_conditions, inputs, params, ordered_coeffs)
-    
+    TSGA_utils.save_population_to_json(pop, names, f"population_gen_{gen}.json")
     return {
         "best_values": dict(zip(names, best_vals)),
         "actual_errors": actual_errors,
@@ -205,8 +201,13 @@ if __name__ == '__main__':
     inputs_list.append([left, right, wind_list])
     inputs_list.append([left, right, wind_list])
     inputs_list.append([left, right, wind_list])"""
-
+    coeffs = ideal_coeffs.copy()
+    for i, name in enumerate(grouped_names[0]):
+        print("setting", name , " to ", ideal_coeffs[name])
+        coeffs[name] = ideal_coeffs[name]
+    ordered_coeffs = [coeffs[k] for k in coeff_names]
     a_data_set = TSGA_utils.generate_real_data(time_vector, left, right, wind_list, params, initial_conditions)
+    TSGA_utils.plot_3D_position_scatter(a_data_set)
     real_datasets.append(a_data_set)
 
     """    real_datasets.append(a_data_set)
@@ -246,6 +247,8 @@ if __name__ == '__main__':
 
     with open("modified_tsga_metrics.json", "w") as f:
         json.dump(metrics, f, indent=4)
+
+    
 
     print("Step 1 complete. Best coefficients written to tsga_step1_best.json")
     TSGA_utils.plot_metrics_individually("modified_tsga_metrics.json")

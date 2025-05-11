@@ -7,6 +7,8 @@ import run_sim
 import json
 import os
 import numbers
+
+
 # Define coefficient names and bounds
 coeff_names = [
     "CDo", "CDa", "CD_sym", "CYB", "CLo", "CLa", "CL_sym", "Cmo", "Cma", "Cmq",
@@ -78,24 +80,25 @@ ideal_coeffs = {
 }
 
 def generate_complete_flight(time_vector):
+    period = np.round(time_vector[-1]/5)
     left_input = []
     right_input = []
     for t in time_vector:
-        if t < 10:
-            left_input.append(0)
-            right_input.append(0)
-        elif t < 20:
-            left_input.append(0.2)
-            right_input.append(0)
-        elif t < 30:
-            left_input.append(0)
-            right_input.append(0)
-        elif t < 40:
-            left_input.append(0)
-            right_input.append(0.2)           
-        else:
+        if t < period:
             left_input.append(0.2)
             right_input.append(0.2)
+        elif t < 2 * period:
+            left_input.append(0.4)
+            right_input.append(0)
+        elif t < 3 * period:
+            left_input.append(0)
+            right_input.append(0)
+        elif t < 8 * period:
+            left_input.append(0)
+            right_input.append(0.6)
+        else:
+            left_input.append(0)
+            right_input.append(0)
     return left_input,right_input
 
 def generate_straight_flight(time_vector):
@@ -149,7 +152,13 @@ def genertate_spirial_flight(time_vector):
 def generate_real_data(time_vector, l_input, r_input, wind_list , params, initial_conditions):
     coeffcients = ideal_coeffs
     inputs = [l_input, r_input, wind_list]
-    result,_ = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, coeffcients)
+    result,_ = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, coeffcients, False)
+    return result
+
+def generate_real_state_data(time_vector, l_input, r_input, wind_list , params, initial_conditions):
+    coeffcients = ideal_coeffs
+    inputs = [l_input, r_input, wind_list]
+    result,_ = run_sim.sim_state_with_noise(time_vector, initial_conditions, inputs, params, True, coeffcients)
     return result
 
 def evaluate_coeffs_error(coeff_dict):
@@ -168,6 +177,11 @@ def evaluate_partial_coeffs_error(values, names):
         errors[name] = error
     return errors
 
+def average_actual_error(values,names):
+    running_av = 0
+    for val, name in zip(values, names):
+        running_av += abs(val - ideal_coeffs[name])
+    return running_av / len(values)
 def evaluate_ind_coeffs_error(value, name):
     ideal = ideal_coeffs[name]
     return abs((value - ideal) / ideal) * 100 if ideal != 0 else 0
@@ -226,12 +240,12 @@ def plot_individual_errors(file_path):
             plt.show()
 
 def plot_3D_geometry_comparision(time_vector, real_data, initial_conditions, inputs, params, coefficients):
-    sim_pos = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, coefficients)
+    sim_pos,_ = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, coefficients)
     sim_pos = np.array([np.asarray(s) for s in sim_pos])
     real_data = np.array([np.asarray(s) for s in real_data])
     fig_best = plt.figure()
     ax_best = fig_best.add_subplot(111, projection='3d')
-    ax_best.plot(sim_pos[:, 0], sim_pos[:, 1], sim_pos[:, 2], label=f'GA Best')
+    ax_best.plot(sim_pos[:, 0], sim_pos[:, 1], sim_pos[:, 2], label=f'final')
     ax_best.plot(real_data[:, 0], real_data[:, 1], real_data[:, 2], label=f'Ideal')
     ax_best.set_xlabel('X')
     ax_best.set_ylabel('Y')
@@ -252,14 +266,71 @@ def plot_3D_position(real_data):
     ax_best.legend()
     plt.show()
 
+def plot_3D_position_scatter(real_data):
+    real_data = np.array([np.asarray(s) for s in real_data])
+    fig_best = plt.figure()
+    ax_best = fig_best.add_subplot(111, projection='3d')
+    ax_best.scatter(real_data[:, 0], real_data[:, 1], real_data[:, 2], label='Ideal')
+    ax_best.set_xlabel('X')
+    ax_best.set_ylabel('Y')
+    ax_best.set_zlabel('Z')
+    ax_best.set_title('Ideal trajectory')
+    ax_best.legend()
+    plt.show()
+
 def plot_fitness(file_path):
     # Load the JSON data
     with open(file_path, "r") as file:
         data = json.load(file)
 
-#plot_metrics_individually("modified_tsga_metrics.json")
+def save_population_to_json(population, names, filename="saved_population.json"):
+    """
+    Save DEAP population to a JSON file.
+    
+    Args:
+        population: List of DEAP Individuals.
+        names: List of coefficient names corresponding to each gene.
+        filename: Output filename (default: 'saved_population.json')
+    """
+    pop_data = []
+    for ind in population:
+        entry = {
+            "genome": dict(zip(names, ind)),
+            "fitness": ind.fitness.values
+        }
+        pop_data.append(entry)
+    
+    with open(filename, "w") as f:
+        json.dump(pop_data, f, indent=4)
 
-#plot_positions_individually("modified_tsga_metrics.json")
+    print(f"Population saved to {filename}")
+
+def generate_individual_from_partials_dict(partial_dicts, full_order, base_values, bounds, variation=0.1):
+    individual = {}
+    for coeff in full_order:
+        sources = [pd for pd in partial_dicts if coeff in pd]
+
+        if sources:
+            value = random.choice(sources)[coeff]
+        else:
+            base = base_values.get(coeff, 0.0)
+            delta = variation * abs(base) if base != 0 else variation
+            min_bound, max_bound = bounds.get(coeff, (base - delta, base + delta))
+            raw_value = random.uniform(base - delta, base + delta)
+            value = max(min(raw_value, max_bound), min_bound)
+
+        individual[coeff] = value
+
+    # Return as ordered list
+    return [individual[coeff] for coeff in full_order]
+
+def generate_population_from_partials_dict(n, partial_genome_lists, full_order, base_values, bounds, variation=0.1):
+    return [
+        generate_individual_from_partials_dict(partial_genome_lists, full_order, base_values, bounds, variation)
+        for _ in range(n)
+    ]
+
+
 """
 if __name__ == '__main__':    
     params = {'initial_pos': [0, 0, 500]}

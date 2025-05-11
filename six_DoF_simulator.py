@@ -540,9 +540,11 @@ class ParafoilSimulation_6Dof:
         for i in range(3):
             val = vec[i]
             if not np.isfinite(val):
+                #print("clamping")
                 self.error = True
                 safe_vec[i] = 0.0
             elif abs(val) > max_abs:
+                #print()
                 self.error = True
                 safe_vec[i] = np.clip(val, -max_abs, max_abs)
             else:
