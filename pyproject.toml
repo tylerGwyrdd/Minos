@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minos"
+version = "0.1.0"
+description = "Minos: A Python project for ..."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name="Tyler Green", email="tylergwyrdd@gmail.com" }
+]
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
