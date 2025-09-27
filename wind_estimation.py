@@ -5,6 +5,7 @@ import numpy as np
 import logging
 import matplotlib.pyplot as plt
 from scipy.signal import bilinear, lfilter
+
 class wind_estimation:
     def __init__(self, radius):
         # geometry of the wind estimation path

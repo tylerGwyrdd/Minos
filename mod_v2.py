@@ -9,7 +9,7 @@ import os
 import numbers
 from deap import tools
 
-import TSGA_utils
+import TSGA_utils as TSGA_utils
 from TSGA_utils import ideal_coeffs, aero_coeffs, bounds_dict, coeff_names
 
 params = {'initial_pos': [0, 0, 500]}

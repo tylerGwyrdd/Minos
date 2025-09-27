@@ -8,7 +8,7 @@ import json
 import os
 import numbers
 import time
-import TSGA_utils
+import TSGA_utils as TSGA_utils
 
 # ------------- Initalising Vars ------------
 

@@ -8,7 +8,7 @@ import json
 import os
 import numbers
 
-import TSGA_utils
+import TSGA_utils as TSGA_utils
 from TSGA_utils import ideal_coeffs, aero_coeffs, bounds_dict, coeff_names
 
 params = {'initial_pos': [0, 0, 0]}

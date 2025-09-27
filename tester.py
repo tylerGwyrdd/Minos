@@ -1,5 +1,5 @@
 import run_sim
-import TSGA_utils
+import TSGA_utils as TSGA_utils
 import numpy as np
 
 params = {'initial_pos': [0, 0, 500]}
