@@ -1,0 +1,21 @@
+site_name: Minos
+repo_url: https://github.com/tylerGwyrdd/Minos
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.expand
+    - search.highlight
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_toc_entry: false
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - API Reference: api.md
