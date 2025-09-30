@@ -1,18 +1,38 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "minos"
 version = "0.1.0"
-description = "Minos: A Python project for ..."
-readme = "README.md"
-requires-python = ">=3.9"
-license = { file = "LICENSE" }
+description = "Tyler Green Level 4 project work"
 authors = [
-  { name="Tyler Green", email="tylergwyrdd@gmail.com" }
+    {name = "Tyler",email = "tylergwyrdd@gmail.com"}
 ]
-dependencies = []
+packages = [{ include = "minos", from = "src" }]
+license = {text = "MIT License"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy (>=2.3.3,<3.0.0)",
+    "matplotlib (>=3.10.6,<4.0.0)",
+    "deap (>=1.4.3,<2.0.0)"
+]
 
-[tool.setuptools.packages.find]
-where = ["."]
+[tool.ruff]
+# Directories to lint
+src = ["src"]
+
+# Enable pydocstyle rules (Dxxx) + docstring convention
+lint.select = ["D", "E", "F"]
+lint.ignore = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy" 
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+mkdocs = "^1.6.1"
+mkdocstrings = {extras = ["python"], version = "^0.30.1"}
+mkdocs-material = "^9.6.21"
+ruff = "^0.13.2"
+
