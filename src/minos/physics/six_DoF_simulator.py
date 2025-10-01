@@ -35,7 +35,7 @@ class ParafoilSimulation_6Dof:
         # calculate the derivatives
         self.calculate_derivatives()
 
-    def set_inputs(self,inputs):
+    def set_inputs(self, inputs):
         """
         Set the inputs for the simulation.
 
@@ -92,6 +92,14 @@ class ParafoilSimulation_6Dof:
         self.delta_s = 0.5*(self.flap_l + self.flap_r) # symmetric flap deflection
     
     def set_state(self, state):
+        """
+        Set the state of the simulation. Also updates the kinematic transformations.
+        
+        Parameters
+        ----------
+        state : list
+            State vector [position, velocity_body, eulers, angular_velocity].
+        """
         self.p = state[0] # position in inertial frame
         self.vb = self.safe_clamp_vector(state[1]) # velocity in body fixed frame
         self.eulers = state[2] # euler angles IN RADIANS of body in inertal frame
@@ -104,6 +112,11 @@ class ParafoilSimulation_6Dof:
         """
         Set the aerodynamic coefficients for the simulation.
         Accepts either a list (in predefined order) or a dictionary (by name).
+
+        Parameters
+        ----------
+        coefficients : list or dict, optional
+            Aerodynamic coefficients. If None, defaults are used.
         """
         if coefficients is None:
             return
@@ -136,6 +149,18 @@ class ParafoilSimulation_6Dof:
         """
         Check if the parameter is set in the dictionary and if its type matches the expected type.
         If so, sets the instance variable self.<attr_name> to the value from the dictionary.
+
+        Parameters
+        ----------
+        dict : dict
+            Dictionary containing parameters of the simulation.
+        param_name : str
+            Name of the parameter to check and set.
+
+        Returns
+        -------
+        bool
+            True if the parameter was found and set, False otherwise.
         """
         param = dict.get(param_name)
         if param is None:
@@ -156,7 +181,7 @@ class ParafoilSimulation_6Dof:
         
         see: Yakimenko, Oleg A.. (2015). <i>Precision Aerial Delivery Systems - Modeling, Dynamics, and Control
 
-                Parameters
+        Parameters
         ----------
         params : dict
             Keys must include:
@@ -289,16 +314,41 @@ class ParafoilSimulation_6Dof:
         return [self.p, self.vb, self.eulers, self.angular_vel]
     
     def get_inertial_position(self):
+        """
+        Get the position in the inertial frame.
+        Returns
+        -------
+        np.ndarray
+            Position in the inertial frame.
+        """
         ned_to_world = np.array([1, 1, -1])  # Flip Z-axis
         inertial_pos = self.initial_pos + ned_to_world * self.p  # Element-wise multiplication
         return inertial_pos
     
     def get_inertial_state(self):
+        """
+        Get the current state vector in the inertial frame.
+        Returns
+        -------
+        list
+            [position_inertial, velocity_inertial, eulers, euler_rates].
+        """
+
         return[self.get_inertial_position(), self.body_to_inertial(self.vb), self.eulers, self.get_euler_rates()]
     
     def get_CDM(self, euler_angles = None):
         """
-        Get the rotation matrix from body to inertial frame"""
+        Get the rotation matrix from body to inertial frame
+        Parameters
+        ----------
+        euler_angles : tuple or list, optional
+            Euler angles (phi, theta, psi) in radians. If None, uses current state.
+        
+        Returns
+        -------
+        np.ndarray
+            3x3 rotation matrix."""
+        
         if euler_angles is None:
             phi, theta, psi = self.eulers
         else:
@@ -312,6 +362,10 @@ class ParafoilSimulation_6Dof:
     def get_euler_rates(self, angular_vel = None):
         """
         Get the euler rates from the angular velocity vector.
+        Parameters
+        ----------
+        angular_vel : np.ndarray, optional
+            Angular velocity vector (p, q, r). If None, uses current state.
         """
         if angular_vel is None:
             angular_vel = self.angular_vel
@@ -334,6 +388,14 @@ class ParafoilSimulation_6Dof:
     def get_angular_vel_to_EulerRates_matrix(self, euler_angles = None):
         """
         Get the transformation matrix from angular velocity to euler rates.
+        Parameters
+        ----------
+        euler_angles : tuple or list, optional
+            Euler angles (phi, theta, psi) in radians. If None, uses current state.
+        Returns
+        -------
+        np.ndarray
+            3x3 transformation matrix.
         """
         if euler_angles is None:
             phi, theta, psi = self.eulers
@@ -352,6 +414,12 @@ class ParafoilSimulation_6Dof:
     def update_kinematic_transforations(self, euler_angles = None, angular_vel = None):
         """
         Update the kinematic transformations based on the current state.
+        Parameters
+        ----------
+        euler_angles : tuple or list, optional
+            Euler angles (phi, theta, psi) in radians. If None, uses current state.
+        angular_vel : np.ndarray, optional
+            Angular velocity vector (p, q, r). If None, uses current state.
         """
         if euler_angles is None:
             euler_angles = self.eulers
@@ -362,6 +430,10 @@ class ParafoilSimulation_6Dof:
         self.T_angularVel_to_EulerRates = self.get_angular_vel_to_EulerRates_matrix(euler_angles)
 
     def update_wind_transformations(self):
+        """
+        Update the wind-related transformations based on the current state.
+        Calculates local airspeed, angle of attack, sideslip angle, and rotation matrix from wind to body frame.
+        """
         epsilon = 1e-8  # small value to prevent division by zero
         # calculate local airspeed in body fixed frame
         self.va = self.vb - self.body_to_inertial(self.w, True) # local airspeed in body fixed frame
@@ -391,14 +463,48 @@ class ParafoilSimulation_6Dof:
         ])
     
     def body_to_inertial(self,vector, inverse = False):
+        """
+        Rotate a vector from body frame to inertial
+        
+        Parameters
+        ----------
+        vector : np.ndarray
+            3D vector in body frame.
+        inverse : bool, optional
+            If True, rotates from inertial to body frame. Default is False.
+        Returns
+        -------
+        np.ndarray
+            Rotated 3D vector."""
         R_bi = self.CDM.T if inverse else self.CDM
         return np.dot(R_bi, vector)
     
     def body_to_wind(self,vector, inverse = False):
+        """
+        Rotate a vector from body frame to wind frame.
+        Parameters
+        ----------
+        vector : np.ndarray
+            3D vector in body frame.
+        inverse : bool, optional
+            If True, rotates from wind to body frame. Default is False.
+        Returns
+        -------
+        np.ndarray
+            Rotated 3D vector.
+        """
         R_bw = self.R_wb if inverse else self.R_wb.T
         return np.dot(R_bw, vector)
 
     def calculate_aero_force_coeff(self):
+        """
+        calculates the combined areodynamic force coefficients. Uses AoA, rigging angles etc.
+
+        Returns
+        -------
+        list
+            [CD, CY, CL] aerodynamic force coefficients.
+        """
         # for lifting
         self.CL = self.CLo + self.CLa * (self.angle_of_attack + self.rigging_angle) + self.CL_sym*self.delta_s
 
@@ -411,7 +517,14 @@ class ParafoilSimulation_6Dof:
         return [self.CD, self.CY, self.CL]
     
     def calculate_aero_moment_coeff(self):
+        """
+        calculates the combined areodynamic moment coefficients. Uses AoA, rigging angles etc.
 
+        Returns
+        -------
+        list
+            [Cl, Cm, Cn] aerodynamic moments coefficients.
+        """
         # for rolling
         self.Cl = self.ClB * self.sideslip_angle + self.Cl_asym * self.delta_a + \
                     self.Clp * self.c/(2*self.va_mag) * self.angular_vel[0]+ \
@@ -429,6 +542,13 @@ class ParafoilSimulation_6Dof:
         return [self.Cl, self.Cm, self.Cn]
     
     def calculate_aero_forces(self):
+        """
+        Calculates the aerodynamic forces in the body frame.
+        Returns
+        -------
+        np.ndarray
+            Aerodynamic force vector in body frame.
+        """
         self.calculate_aero_force_coeff()
         # calculate the components
         Fa_x = 0.5 * p_density * self.va_mag**2 * self.S * self.CD
@@ -442,6 +562,13 @@ class ParafoilSimulation_6Dof:
         return self.F_aero
 
     def calculate_aero_moments(self):
+        """
+        Calculates the aerodynamic moments in the body frame.
+        Returns
+        -------
+        np.ndarray
+            Aerodynamic moment vector in body frame.
+        """
         self.calculate_aero_moment_coeff()
         
         L = 0.5 * p_density * self.va_mag**2 * self.S * self.b * self.Cl
@@ -455,7 +582,13 @@ class ParafoilSimulation_6Dof:
         self.M_aero = M_aero_A
         return self.M_aero
     
-    def calculate_derivatives(self):        
+    def calculate_derivatives(self):
+        """
+        Calculate the derivatives of the state vector. This also calculates all the forces and moments.
+        Returns
+        -------
+        list
+            [acceleration_body, angular_acceleration]."""   
         # calculate the aero forces
         F_aero = self.calculate_aero_forces()
 
@@ -483,6 +616,8 @@ class ParafoilSimulation_6Dof:
         return [self.acc,self.angular_acc]
 
     def calculate_apparent_mass_matrices(self):
+        """
+        Calculates the apparent mass matrix for the parafoil. Note this isnt functioning"""
             # Correlation factors for flat parafoil
         
         AR = self.b/self.c
@@ -579,6 +714,18 @@ class ParafoilSimulation_6Dof:
         self.I = I_parafoil_at_com + I_payload
     
     def get_solver_derivatives(self,state):
+        """
+        This function is used by the ODE solver to get the derivatives of the state vector.
+        
+        Parameters
+        ----------
+        state : list
+            State vector [position, velocity_body, eulers, angular_velocity].
+        
+        Returns
+        -------
+        list
+            Derivatives of the state vector [velocity_body, acceleration_body, euler_rates, angular_acceleration]."""
         old_state = self.get_state()
         self.set_state(state)
         # Calculate the derivatives

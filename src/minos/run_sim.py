@@ -1,4 +1,4 @@
-import six_DoF_simulator
+import minos.physics.six_DoF_simulator as six_DoF_simulator
 from utils import rk4
 import numpy as np
 import main

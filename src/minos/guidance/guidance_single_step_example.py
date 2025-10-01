@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from guidance_v2 import guidance_update
-import wind_estimation
+import minos.guidance.wind_estimation as wind_estimation
 # Simulation parameters
 actual_wind_vector = np.array([-6, 0])  # some wind
 initial_position = np.array([140, 0, 715])

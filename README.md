@@ -1,6 +1,8 @@
 # Guided Parafoil Simulation
 
-A Python-based simulation environment for modeling and testing the dynamics of guided parafoils. The project is structured as a Python package and uses [Poetry](https://python-poetry.org/) for dependency management and packaging.
+A Python-based simulation environment for modeling and testing the dynamics of guided parafoils. 
+
+The project is structured as a Python package and uses [Poetry](https://python-poetry.org/) for dependency management and packaging.
 
 ## Features
 

@@ -1,0 +1,1611 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../physics/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.21">
+    
+    
+      
+        <title>Guidance - Minos</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2a3383ac.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#physics-simulator" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Minos" class="md-header__button md-logo" aria-label="Minos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Minos
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Guidance
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/tylerGwyrdd/Minos" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../usage/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Usage
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../api/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../physics/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Physics Simulator
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guidance
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../model_identification.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Model Identification
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Minos" class="md-nav__button md-logo" aria-label="Minos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Minos
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/tylerGwyrdd/Minos" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Usage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../physics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Physics Simulator
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Guidance
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Guidance
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.compute_required_heading" class="md-nav__link">
+    <span class="md-ellipsis">
+      compute_required_heading
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.guidance_update" class="md-nav__link">
+    <span class="md-ellipsis">
+      guidance_update
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.simple_control" class="md-nav__link">
+    <span class="md-ellipsis">
+      simple_control
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.smooth_heading_to_line_with_wind" class="md-nav__link">
+    <span class="md-ellipsis">
+      smooth_heading_to_line_with_wind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.update_kinematics" class="md-nav__link">
+    <span class="md-ellipsis">
+      update_kinematics
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.update_wind" class="md-nav__link">
+    <span class="md-ellipsis">
+      update_wind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.wrap_angle" class="md-nav__link">
+    <span class="md-ellipsis">
+      wrap_angle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.wrap_angle_pi_to_pi" class="md-nav__link">
+    <span class="md-ellipsis">
+      wrap_angle_pi_to_pi
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model_identification.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Model Identification
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.compute_required_heading" class="md-nav__link">
+    <span class="md-ellipsis">
+      compute_required_heading
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.guidance_update" class="md-nav__link">
+    <span class="md-ellipsis">
+      guidance_update
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.simple_control" class="md-nav__link">
+    <span class="md-ellipsis">
+      simple_control
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.smooth_heading_to_line_with_wind" class="md-nav__link">
+    <span class="md-ellipsis">
+      smooth_heading_to_line_with_wind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.update_kinematics" class="md-nav__link">
+    <span class="md-ellipsis">
+      update_kinematics
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.update_wind" class="md-nav__link">
+    <span class="md-ellipsis">
+      update_wind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.wrap_angle" class="md-nav__link">
+    <span class="md-ellipsis">
+      wrap_angle
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#minos.guidance.guidance_v2.wrap_angle_pi_to_pi" class="md-nav__link">
+    <span class="md-ellipsis">
+      wrap_angle_pi_to_pi
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="physics-simulator">Physics Simulator</h1>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.compute_required_heading" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">compute_required_heading</span><span class="p">(</span><span class="n">wind_vector</span><span class="p">,</span> <span class="n">airspeed</span><span class="p">,</span> <span class="n">target_vector</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Calculate the required heading angle to follow the desired vector in wind.
+Uses wind triangle, taking norms and solving quadratic for ground speed along 
+desired vector. 
+Args:
+    wind_vector (list): (w_x, w_y), wind vector in m/s.
+    airspeed (float): Airspeed of the parafoil  in m/s.
+    target_vector (list): (d_x, d_y), vector pointing to the desired target.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>    float: Required heading angle in radians.</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: Air velocity vector (v_a_x, v_a_y).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">compute_required_heading</span><span class="p">(</span><span class="n">wind_vector</span><span class="p">,</span> <span class="n">airspeed</span><span class="p">,</span> <span class="n">target_vector</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the required heading angle to follow the desired vector in wind.</span>
+<span class="sd">    Uses wind triangle, taking norms and solving quadratic for ground speed along </span>
+<span class="sd">    desired vector. </span>
+<span class="sd">    Args:</span>
+<span class="sd">        wind_vector (list): (w_x, w_y), wind vector in m/s.</span>
+<span class="sd">        airspeed (float): Airspeed of the parafoil  in m/s.</span>
+<span class="sd">        target_vector (list): (d_x, d_y), vector pointing to the desired target.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        float: Required heading angle in radians.</span>
+<span class="sd">        np.ndarray: Air velocity vector (v_a_x, v_a_y).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># format and normalise</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wind_vector</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">target_vector</span><span class="p">)</span>
+    <span class="n">d_hat</span> <span class="o">=</span> <span class="n">d</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="c1"># Solve for Vg using quadratic equation</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d_hat</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="o">-</span> <span class="n">airspeed</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="n">discriminant</span> <span class="o">=</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">c</span>
+    <span class="k">if</span> <span class="n">discriminant</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No solution: desired vector cannot be achieved with given airspeed and wind.&quot;</span><span class="p">)</span>
+
+    <span class="n">Vg</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">discriminant</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span>
+
+    <span class="c1"># Compute air velocity vector</span>
+    <span class="n">v_g</span> <span class="o">=</span> <span class="n">Vg</span> <span class="o">*</span> <span class="n">d_hat</span>
+    <span class="n">v_a</span> <span class="o">=</span> <span class="n">v_g</span> <span class="o">-</span> <span class="n">w</span>
+
+    <span class="c1"># Compute heading angle</span>
+    <span class="n">heading</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">v_a</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v_a</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">heading</span><span class="p">,</span> <span class="n">v_a</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.guidance_update" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">guidance_update</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Update the state of the system based on the current state and time.
+This function is called at each time step of the simulation.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">guidance_update</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the state of the system based on the current state and time.</span>
+<span class="sd">    This function is called at each time step of the simulation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">flare_magnitude</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># Get the current position from the simulator</span>
+    <span class="n">position</span><span class="p">,</span> <span class="n">current_velocity</span><span class="p">,</span> <span class="n">current_height</span><span class="p">,</span> <span class="n">current_heading</span> <span class="o">=</span> <span class="n">update_kinematics</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+
+    <span class="c1">#params[&quot;wind_v_list&quot;].append(current_velocity)</span>
+    <span class="c1">#wind_estimate = least_squares_wind_calc(params[&quot;wind_v_list&quot;])</span>
+
+    <span class="c1"># check that we will make it to the IPI</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;Final Approach&quot;</span><span class="p">:</span>
+        <span class="c1"># easy</span>
+        <span class="n">vertical_time_to_IPI</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_height</span> <span class="o">-</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;IPI&quot;</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;sink_velocity&quot;</span><span class="p">]</span>
+        <span class="c1"># first we need to get the effective vel (including wind)</span>
+        <span class="n">vector_to_IPI</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;IPI&quot;</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">position</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">direction_to_IPI</span> <span class="o">=</span> <span class="n">vector_to_IPI</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector_to_IPI</span><span class="p">)</span>
+        <span class="n">effective_vel</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">direction_to_IPI</span> <span class="o">+</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span>
+        <span class="c1"># get the effective vel componenet along the direction to the IPI</span>
+        <span class="n">groundspeed_along_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">effective_vel</span><span class="p">,</span> <span class="n">direction_to_IPI</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">groundspeed_along_path</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># we are never going to make it</span>
+            <span class="n">horizontal_time_to_IPI</span> <span class="o">=</span> <span class="n">vertical_time_to_IPI</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">horizontal_time_to_IPI</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector_to_IPI</span><span class="p">)</span> <span class="o">/</span> <span class="n">groundspeed_along_path</span>
+
+        <span class="k">if</span> <span class="n">vertical_time_to_IPI</span> <span class="o">&lt;</span> <span class="n">horizontal_time_to_IPI</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;heading to IPI prematurely&quot;</span><span class="p">)</span>
+            <span class="n">vector_to_IPI</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;IPI&quot;</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">position</span>
+            <span class="c1"># perpendicular vector to the wind direction</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smooth_heading_to_line_with_wind</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;IPI&quot;</span><span class="p">][:</span><span class="mi">2</span><span class="p">],</span> <span class="n">vector_to_IPI</span><span class="p">,</span> 
+                                                                    <span class="mi">10</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span> <span class="o">*</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">],</span> <span class="n">flare_magnitude</span>
+
+    <span class="c1"># get estimate of time until FTP height reached</span>
+    <span class="n">time_to_FTP</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_height</span> <span class="o">-</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;final_approach_height&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;sink_velocity&quot;</span><span class="p">]</span>
+    <span class="n">spiral_centre_current</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;FTP_centre&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">time_to_FTP</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">time_to_FTP</span>  <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># we have hit FTP</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Final Approach&quot;</span>
+
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Final Approach&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final Approach&quot;</span><span class="p">)</span>
+        <span class="c1"># line up with the wind...</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smooth_heading_to_line_with_wind</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;FTP_centre&quot;</span><span class="p">],</span> <span class="o">-</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">],</span> 
+                                                                <span class="mi">10</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span> <span class="o">*</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">])</span>
+        <span class="c1"># flare at 10m</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">current_height</span> <span class="o">&lt;</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;flare_height&quot;</span><span class="p">]):</span>
+            <span class="n">flare_magnitude</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">elif</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;initialising&quot;</span><span class="p">:</span>
+
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;RLS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">current_velocity</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">current_velocity</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">wind_estimate</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;RLS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_wind_estimate</span><span class="p">()</span>
+        <span class="n">update_wind</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">wind_estimate</span><span class="p">)</span>
+
+       <span class="c1"># params[&quot;wind_v_list&quot;].append(current_velocity)</span>
+       <span class="c1"># wind_estimate = least_squares_wind_calc(params[&quot;wind_v_list&quot;])</span>
+       <span class="c1"># update_wind(params,wind_estimate)   </span>
+        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;initialised&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="c1"># set the start heading for the wind estimation</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;SETTING STARTING HEADING&quot;</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;start_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_heading</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;initialised&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Generate critical points for the T-approach algorithm</span>
+        <span class="c1"># we need raw state to check if the thing has rotated over 360 degrees</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;start_heading&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mi">360</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Generating critical points&quot;</span><span class="p">)</span>
+            <span class="c1"># get the wind estimate</span>
+            <span class="c1">#wind_estimate = least_squares_wind_calc(params[&quot;wind_v_list&quot;])</span>
+            <span class="c1">#update_wind(params,wind_estimate)</span>
+            <span class="c1"># update the FTP centre</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;homing&quot;</span>
+            <span class="n">position</span><span class="p">,</span> <span class="n">current_velocity</span><span class="p">,</span> <span class="n">current_height</span><span class="p">,</span> <span class="n">current_heading</span> <span class="o">=</span> <span class="n">update_kinematics</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initialising&quot;</span><span class="p">)</span>
+            <span class="c1"># params[&quot;wind_v_list&quot;].append(current_velocity)</span>
+            <span class="c1"># keep going in a circle</span>
+            <span class="n">angular_vel</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;spirialing_radius&quot;</span><span class="p">]</span>
+            <span class="n">delta_heading</span> <span class="o">=</span> <span class="n">angular_vel</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;update_rate&quot;</span><span class="p">]</span>
+            <span class="c1"># go clockwise, add onto desired heading</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta_heading</span>
+
+
+    <span class="c1"># initialising mode could&#39;ve been set to homing mode in the last update, better check</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;homing&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Homing&quot;</span><span class="p">)</span>
+
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;RLS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">current_velocity</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">current_velocity</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">wind_estimate</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;RLS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_wind_estimate</span><span class="p">()</span>
+        <span class="n">update_wind</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">wind_estimate</span><span class="p">)</span>
+
+        <span class="c1"># work out the distance and heading to get to this point</span>
+        <span class="n">vector_to_centre</span> <span class="o">=</span> <span class="n">spiral_centre_current</span> <span class="o">-</span> <span class="n">position</span>
+        <span class="c1"># perpendicular vector to the wind direction</span>
+        <span class="n">perp_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vector_to_centre</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="n">vector_to_centre</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">distance_to_tangent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector_to_centre</span><span class="p">)</span>
+        <span class="c1"># add perp vector so we line up with the circle</span>
+        <span class="n">vector_to_tangent</span> <span class="o">=</span> <span class="n">spiral_centre_current</span> <span class="o">+</span> <span class="n">perp_vector</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">perp_vector</span><span class="p">)</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;spirialing_radius&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.9</span> <span class="o">-</span> <span class="n">position</span>
+        <span class="c1"># calculate the desired heading</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">],</span><span class="n">_</span> <span class="o">=</span> <span class="n">compute_required_heading</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">],</span> <span class="n">vector_to_tangent</span><span class="p">)</span>
+        <span class="c1"># calculate the heading</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wrap_angle</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">])</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;        # Plot setup</span>
+<span class="sd">        plt.figure(figsize=(8, 8))</span>
+<span class="sd">        plt.axis(&#39;equal&#39;)</span>
+<span class="sd">        plt.grid(True)</span>
+<span class="sd">        plt.title(&quot;Parafoil Homing Guidance&quot;)</span>
+
+<span class="sd">        # Plot parafoil position</span>
+<span class="sd">        plt.plot(position[0], position[1], &#39;bo&#39;, label=&#39;Parafoil Position&#39;)</span>
+
+<span class="sd">        # Plot current heading vector</span>
+<span class="sd">        current_heading_vector = np.array([</span>
+<span class="sd">            np.cos(current_heading),</span>
+<span class="sd">            np.sin(current_heading)</span>
+<span class="sd">        ]) * 10  # scale for visibility</span>
+<span class="sd">        plt.arrow(position[0], position[1],</span>
+<span class="sd">                current_heading_vector[0], current_heading_vector[1],</span>
+<span class="sd">                head_width=1, color=&#39;blue&#39;, label=&#39;Current Heading&#39;)</span>
+
+<span class="sd">        # Plot desired heading vector</span>
+<span class="sd">        desired_heading_vector = np.array([</span>
+<span class="sd">            np.cos(params[&quot;desired_heading&quot;]),</span>
+<span class="sd">            np.sin(params[&quot;desired_heading&quot;])</span>
+<span class="sd">        ]) * 10  # scale for visibility</span>
+<span class="sd">        plt.arrow(position[0], position[1],</span>
+<span class="sd">                desired_heading_vector[0], desired_heading_vector[1],</span>
+<span class="sd">                head_width=1, color=&#39;green&#39;, label=&#39;Desired Heading&#39;)</span>
+
+<span class="sd">        # plot wind</span>
+<span class="sd">        wind_vector = params[&quot;wind_unit_vector&quot;] * 10</span>
+<span class="sd">        plt.arrow(position[0], position[1],</span>
+<span class="sd">                wind_vector[0], wind_vector[1],</span>
+<span class="sd">                head_width=1, color=&#39;yellow&#39;, label=&#39;wind vector&#39;)</span>
+<span class="sd">        # plot actual velocity</span>
+<span class="sd">        plt.arrow(position[0], position[0], </span>
+<span class="sd">                state[1][0], state[1][1],</span>
+<span class="sd">                head_width=1, color=&#39;orange&#39;, label=&#39;actual velocity vector&#39;)</span>
+<span class="sd">        # Plot spiral centre</span>
+<span class="sd">        plt.plot(spiral_centre_current[0], spiral_centre_current[1], &#39;rx&#39;, label=&#39;Spiral Centre&#39;)</span>
+
+<span class="sd">        # Plot IPI point (assumed FTP_centre)</span>
+<span class="sd">        plt.plot(ipi_point[0], ipi_point[1], &#39;ms&#39;, label=&#39;IPI (FTP Centre)&#39;)</span>
+
+<span class="sd">        # Add legend and labels</span>
+<span class="sd">        plt.xlabel(&quot;X Position&quot;)</span>
+<span class="sd">        plt.ylabel(&quot;Y Position&quot;)</span>
+<span class="sd">        plt.legend()</span>
+<span class="sd">        # plt.show()&quot;&quot;&quot;</span>
+
+        <span class="c1"># Check if we need to start turning into the final approach</span>
+        <span class="k">if</span> <span class="n">distance_to_tangent</span> <span class="o">&lt;</span> <span class="mf">1.2</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;spirialing_radius&quot;</span><span class="p">]:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;energy_management&quot;</span>
+
+    <span class="c1"># homing mode could&#39;ve been set to energy management mode in the last update, better check</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;energy_management&quot;</span><span class="p">:</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Energy Management&quot;</span><span class="p">)</span>
+            <span class="n">dist_to_CTP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">spiral_centre_current</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">dist_to_CTP</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;spirialing_radius&quot;</span><span class="p">]:</span>
+                <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;homing&quot;</span>
+            <span class="c1">#params[&quot;wind_v_list&quot;].append(current_velocity)</span>
+           <span class="c1"># wind_estimate = least_squares_wind_calc(params[&quot;wind_v_list&quot;])</span>
+            <span class="c1">#update_wind(params,wind_estimate)</span>
+            <span class="c1"># keep going in a circle</span>
+            <span class="n">angular_vel</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;spirialing_radius&quot;</span><span class="p">]</span>
+            <span class="n">delta_heading</span> <span class="o">=</span> <span class="n">angular_vel</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;update_rate&quot;</span><span class="p">]</span>
+            <span class="c1"># go clockwise, add onto desired heading</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta_heading</span>
+    <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wrap_angle</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;desired_heading&quot;</span><span class="p">],</span> <span class="n">flare_magnitude</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.simple_control" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">simple_control</span><span class="p">(</span><span class="n">current_heading</span><span class="p">,</span> <span class="n">desired_heading</span><span class="p">,</span> <span class="n">heading_rate</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Takes both headings in radians, returns flap deflections</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">simple_control</span><span class="p">(</span><span class="n">current_heading</span><span class="p">,</span> <span class="n">desired_heading</span><span class="p">,</span> <span class="n">heading_rate</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes both headings in radians, returns flap deflections</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># convert and calcuate requred headings</span>
+    <span class="n">current_heading</span> <span class="o">=</span> <span class="n">wrap_angle_pi_to_pi</span><span class="p">(</span><span class="n">current_heading</span><span class="p">)</span>
+    <span class="n">desired_heading</span> <span class="o">=</span> <span class="n">wrap_angle_pi_to_pi</span><span class="p">(</span><span class="n">desired_heading</span><span class="p">)</span>
+    <span class="n">heading_error</span> <span class="o">=</span> <span class="n">wrap_angle_pi_to_pi</span><span class="p">(</span><span class="n">desired_heading</span> <span class="o">-</span> <span class="n">current_heading</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;current heading: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">current_heading</span><span class="p">)</span><span class="si">}</span><span class="s2">, desired heading: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">desired_heading</span><span class="p">)</span><span class="si">}</span><span class="s2">, heading error: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># double check that heading error is correct</span>
+    <span class="c1"># convert to degrees for easibility</span>
+    <span class="n">heading_error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span>
+    <span class="n">deflections</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">magnitude</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="k">if</span> <span class="n">heading_error</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">deflections</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">deflections</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="mf">0.2</span>
+    <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="mf">0.3</span>
+    <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">heading_error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="p">:</span>
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="mf">0.4</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">magnitude</span> <span class="o">*</span> <span class="n">deflections</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">magnitude</span> <span class="o">*</span> <span class="n">deflections</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.smooth_heading_to_line_with_wind" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">smooth_heading_to_line_with_wind</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">line_point</span><span class="p">,</span> <span class="n">line_direction</span><span class="p">,</span> <span class="n">lookahead_distance</span><span class="p">,</span> <span class="n">wind_vector</span><span class="p">,</span> <span class="n">airspeed</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute the heading required to move toward the lookahead point, considering wind.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 5</span>
+<span class="normal"> 6</span>
+<span class="normal"> 7</span>
+<span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">smooth_heading_to_line_with_wind</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">line_point</span><span class="p">,</span> 
+                                     <span class="n">line_direction</span><span class="p">,</span> <span class="n">lookahead_distance</span><span class="p">,</span> <span class="n">wind_vector</span><span class="p">,</span> <span class="n">airspeed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the heading required to move toward the lookahead point, considering wind.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">line_point</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">line_direction</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">d</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="c1"># Project position onto the line to find the closest point</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">p</span> <span class="o">-</span> <span class="n">a</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+    <span class="n">closest_point</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">d</span>
+
+    <span class="c1"># Lookahead point on the line</span>
+    <span class="n">lookahead_point</span> <span class="o">=</span> <span class="n">closest_point</span> <span class="o">+</span> <span class="n">d</span> <span class="o">*</span> <span class="n">lookahead_distance</span>
+
+    <span class="c1"># Desired ground track vector</span>
+    <span class="n">desired_track</span> <span class="o">=</span> <span class="n">lookahead_point</span> <span class="o">-</span> <span class="n">p</span>
+    <span class="n">desired_track</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">desired_track</span><span class="p">)</span>
+
+    <span class="c1"># Solve for air vector that, when combined with wind, gives the desired track</span>
+    <span class="n">air_vector</span> <span class="o">=</span> <span class="n">desired_track</span> <span class="o">*</span> <span class="n">airspeed</span> <span class="o">-</span> <span class="n">wind_vector</span>
+
+    <span class="c1"># Compute heading from air vector</span>
+    <span class="n">required_heading</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">air_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">air_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">required_heading</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.update_kinematics" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">update_kinematics</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Update the kinematics of the system based on the current state.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_kinematics</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the kinematics of the system based on the current state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">current_height</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">current_velocity</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">current_heading</span> <span class="o">=</span> <span class="n">wrap_angle</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;initialising&quot;</span><span class="p">:</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;final_approach_height&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;sink_velocity&quot;</span><span class="p">]</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;FTP_centre&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;IPI&quot;</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;horizontal_velocity&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">])</span>  <span class="o">*</span> <span class="n">time</span> <span class="o">*</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">position</span><span class="p">,</span> <span class="n">current_velocity</span><span class="p">,</span> <span class="n">current_height</span><span class="p">,</span> <span class="n">current_heading</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.update_wind" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">update_wind</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">wind_vector</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Update the wind vector based on the current state.
+This function is called at each time step of the simulation.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_wind</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">wind_vector</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the wind vector based on the current state.</span>
+<span class="sd">    This function is called at each time step of the simulation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Update the wind vector based on the current state</span>
+    <span class="n">wind_2d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">wind_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wind_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="c1"># Update the wind vector based on the current state</span>
+    <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">wind_2d</span><span class="p">)</span>
+    <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wind_2d</span> <span class="o">/</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">]</span>
+    <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">wind_2d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">wind_2d</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_magnitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_unit_vector&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">&quot;wind_heading&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.wrap_angle" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">wrap_angle</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Returns angle within the bounds of 0 and 2 PI</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">wrap_angle</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns angle within the bounds of 0 and 2 PI</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">angle</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="minos.guidance.guidance_v2.wrap_angle_pi_to_pi" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">wrap_angle_pi_to_pi</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Returns angle within the bounds of -PI and PI</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\minos\guidance\guidance_v2.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">wrap_angle_pi_to_pi</span><span class="p">(</span><span class="n">angle</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns angle within the bounds of -PI and PI</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">wrap_angle</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.expand", "search.highlight"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>

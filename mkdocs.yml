@@ -20,3 +20,6 @@ nav:
   - Home: index.md
   - Usage: usage.md
   - API Reference: api.md
+  - Physics Simulator: physics.md
+  - Guidance: guidance.md
+  - Model Identification: model_identification.md

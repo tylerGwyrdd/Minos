@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import six_DoF_simulator as simulator
+import minos.physics.six_DoF_simulator as simulator
 import logging
 from utils import visualize_parafoil_pose
 from utils import rk4 
 import guidance_v2
 import copy
+
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 

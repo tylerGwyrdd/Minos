@@ -1,3 +1,3 @@
-# API Reference
+# Minos API Reference
 
-::: minos.six_DoF_simulator
+::: minos.main
