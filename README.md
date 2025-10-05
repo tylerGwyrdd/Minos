@@ -22,3 +22,8 @@ git clone <repo-url>
 cd guided-parafoil-sim
 poetry install
 poetry shell
+```
+
+## reference
+
+check out the [documentation](https://tylergwyrdd.github.io/Minos/)

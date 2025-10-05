@@ -178,6 +178,7 @@ def average_actual_error(values,names):
     for val, name in zip(values, names):
         running_av += abs(val - ideal_coeffs[name])
     return running_av / len(values)
+
 def evaluate_ind_coeffs_error(value, name):
     ideal = ideal_coeffs[name]
     return abs((value - ideal) / ideal) * 100 if ideal != 0 else 0

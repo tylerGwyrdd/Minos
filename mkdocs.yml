@@ -16,10 +16,10 @@ plugins:
           options:
             docstring_style: numpy
             show_root_toc_entry: false
+
 nav:
   - Home: index.md
   - Usage: usage.md
-  - API Reference: api.md
   - Physics Simulator: physics.md
   - Guidance: guidance.md
-  - Model Identification: model_identification.md
+  - Model Identification: identification.md

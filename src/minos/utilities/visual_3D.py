@@ -5,6 +5,7 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.animation as animation
 from matplotlib.widgets import Slider, Button
 
+
 def visualize_parafoil_pose(
     euler_series,
     position_series,
@@ -12,7 +13,26 @@ def visualize_parafoil_pose(
     slowmo_factor=1.0,
     save_path=None
 ):
+    """
+    Function for visulising the parafoils motion (3D). Generates a gif and can be saved.
 
+    Parameters
+    ----------
+        euler_series : list
+            contains the euler angles over the interval period measured.
+        position_series : list
+            The positions of the parafoil over the interval.
+        interval : int (optional)
+            The interval which the motion was recorded over. Default is 100 ?
+        slowmo_factor : float
+            How fast do you want the gif to be. 
+            1 is normal. 
+            < 1 is slower. 
+            > 1 is faster.
+            Default is 1.
+        save_path : string
+            The file path where you want to save the gif. Default None, means no gif will be saved.
+    """
     euler_series = np.array(euler_series)
     position_series = np.array(position_series)
     assert len(euler_series) == len(position_series), "Rotation and position series must be the same length."
@@ -210,45 +230,3 @@ def visualize_parafoil_pose(
         ani.save(save_path, dpi=200, writer=writer)
     else:
         plt.show()
-
-# ODE solver, simplest one, error prone
-def forward_euler(state, derivatives, dt):
-    dx = [dt * der for der in derivatives]
-    new_state = [s + a for s, a in zip(state, dx)]
-    return new_state
-
-# RK4 is a more accurate ODE solver
-def rk4(state, derivative_func, dt):
-    """
-    Runge-Kutta 4th order integrator.
-
-    - `state`: list of np.array state vectors [pos, vb, eulers, omega]
-    - `derivative_func`: function that returns derivatives given a state
-    - `dt`: timestep
-    """
-
-    def add_scaled(state, derivative, scale):
-        return [s + scale * d for s, d in zip(state, derivative)]
-
-    # k1
-    k1 = derivative_func(state)
-
-    # k2
-    state_k2 = add_scaled(state, k1, dt / 2)
-    k2 = derivative_func(state_k2)
-
-    # k3
-    state_k3 = add_scaled(state, k2, dt / 2)
-    k3 = derivative_func(state_k3)
-
-    # k4
-    state_k4 = add_scaled(state, k3, dt)
-    k4 = derivative_func(state_k4)
-
-    # Weighted average
-    new_state = [
-        s + (dt / 6) * (d1 + 2 * d2 + 2 * d3 + d4)
-        for s, d1, d2, d3, d4 in zip(state, k1, k2, k3, k4)
-    ]
-
-    return new_state

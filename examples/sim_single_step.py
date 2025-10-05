@@ -4,23 +4,30 @@ from utils import rk4
 
 def single_step(dt, params, old_state = None, control_input = None, wind = None):
     """
-    Simulate a single step of the 6-DoF simulator.
+    Simulate a single step of the 6-DoF simulator. A good starting example to see exactly whats what.
 
     Parameters
     ----------
-    dt (float): The time step for the simulation.
-    params (python dictionary): Sets up all the masses etc of the system. Main thing to note:
-    params['initial_pos'] = np.array([x,y,z]) - MUST BE SET TO THE POSITION WHERE PARAFOIL DEPLOYED IN WORLD FRAME e.g [100,200,500]
-    old_state (np.ndarray): The previous state of the system (BODY FRAME).
-    control_input list: [L-deflection, R-deflection] - The control input to apply.
-    If None, assumes there is no control input
-    wind (np.darray): 1x3 array of wind velocities [x_wind, y_wind, z_wind]
-    If none, assumes no wind
+    dt : float
+        The time step for the simulation.
+    params : dictionary
+        Sets up all the masses etc of the system. Main thing to note:
+        params['initial_pos'] = np.array([x,y,z]) - MUST BE SET TO THE POSITION WHERE PARAFOIL DEPLOYED IN WORLD FRAME e.g [100,200,500]
+    old_state : np.darray 
+        The previous state of the system (BODY FRAME). Default None - either ueses defualt values or from params - I dont remeber.
+    control_input : list
+        [L-deflection, R-deflection] - The control input to apply.
+        If None, assumes there is no control input.
+    wind : np.darray
+        1x3 array of wind velocities [x_wind, y_wind, z_wind].
+        If none, assumes no wind
     
     Returns
     -------
-    new_state: the new state in the BODY FRAME
-    inertial_state: the new state in the WORLD FRAME!
+    new_state : list
+        the new state in the BODY FRAME
+    inertial_state : list
+        the new state in the WORLD FRAME!
     """
     # general stuff you can change if you want
     if wind is None:
