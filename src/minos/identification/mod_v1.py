@@ -2,7 +2,7 @@ import random
 import numpy as np
 from deap import base, creator, tools, algorithms
 import multiprocessing
-import run_sim
+from minos.sim import runners as run_sim
 import json
 
 import TSGA_utils as TSGA_utils

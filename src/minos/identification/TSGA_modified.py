@@ -1,156 +1,159 @@
-import random
-import numpy as np
-from deap import base, creator, tools, algorithms
-import multiprocessing
-import run_sim
+﻿"""Stepwise grouped GA coefficient identification.
+
+This replaces the legacy TSGA_modified script with the refactored
+identification stack.
+"""
+
+from __future__ import annotations
+
 import json
-import os
+from pathlib import Path
 
-import TSGA_utils as TSGA_utils
-from TSGA_utils import ideal_coeffs, aero_coeffs, bounds_dict, coeff_names
+import numpy as np
 
-params = {'initial_pos': [0, 0, 0]}
+from minos.identification.core import CoefficientBounds, FlightDataset
+from minos.identification.deap_ga import GAConfig, optimize_coefficients_ga
+from minos.identification.evaluator import TrajectoryEvaluator
+from minos.identification.TSGA_utils import (
+    aero_coeffs,
+    bounds_dict,
+    evaluate_partial_coeffs_error,
+    generate_complete_flight,
+    ideal_coeffs,
+)
+from minos.sim.runners import sim_with_noise
 
-initial_conditions = np.array([
-    np.array([0, 0, 0]),
-    np.array([10, 0, 3]),
-    np.array([0, 0, 0]),
-    np.array([0, 0, 0])
-])
+OUTPUT_BEST = Path("tsga_step1_best.json")
+OUTPUT_METRICS = Path("tsga_step1_metrics.json")
 
-if os.path.exists("shared_data.npz"):
-    data = np.load("shared_data.npz", allow_pickle=True)
-    time_vector = data['time_vector']
-    inputs = data['inputs'].tolist()
-    real_data = data['real_data']
-else:
-    raise FileNotFoundError("shared_data.npz not found.")
+PARAMS = {"initial_pos": [0.0, 0.0, 0.0]}
+INITIAL_CONDITIONS = [
+    np.array([0.0, 0.0, 0.0]),
+    np.array([10.0, 0.0, 3.0]),
+    np.array([0.0, 0.0, 0.0]),
+    np.array([0.0, 0.0, 0.0]),
+]
+
+GROUPED_NAMES = [
+    ["CDo", "CDa", "CYB", "CLo", "CLa"],
+    ["CD_sym", "CL_sym", "Cl_asym", "Cn_asym"],
+    ["Cmo", "Cma", "Cmq"],
+    ["ClB", "Clp", "Clr"],
+    ["CnB", "Cn_p", "Cn_r"],
+]
 
 
-# Step 1: Independent optimization of each coefficient
-creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMin)
+def _build_dataset(time_vector: np.ndarray) -> FlightDataset:
+    """Create a noisy long-horizon dataset for staged grouped fitting."""
+    left, right = generate_complete_flight(time_vector)
+    wind = np.zeros((time_vector.size, 3), dtype=float)
+    inputs = [np.asarray(left, dtype=float), np.asarray(right, dtype=float), [w.copy() for w in wind]]
 
-NGENS = 100
-NPOP = 20
+    measured, _ = sim_with_noise(
+        time_vector,
+        INITIAL_CONDITIONS,
+        inputs,
+        PARAMS,
+        inertial=True,
+        coefficients=ideal_coeffs,
+    )
 
-def make_toolbox(names, lows, highs):
-    n_params = len(names)
+    return FlightDataset(
+        time_s=time_vector,
+        flap_left=np.asarray(left, dtype=float),
+        flap_right=np.asarray(right, dtype=float),
+        wind_inertial=wind,
+        measured_positions=np.asarray(measured, dtype=float),
+    )
 
-    toolbox = base.Toolbox()
 
-    toolbox.register("individual", 
-                     lambda: creator.Individual([random.uniform(l, h) for l, h in zip(lows, highs)]))
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+def optimize_group(
+    names: list[str],
+    dataset: FlightDataset,
+    base_coefficients: dict[str, float],
+    seed: int,
+) -> dict[str, object]:
+    """Optimize one group using current best values as fixed context."""
+    bounds = CoefficientBounds(by_name=bounds_dict)
+    evaluator = TrajectoryEvaluator(
+        dataset=dataset,
+        params=PARAMS,
+        initial_conditions=INITIAL_CONDITIONS,
+        inertial=True,
+        break_penalty_scale=1.0,
+    )
 
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("mate", tools.cxSimulatedBinaryBounded, eta=10.0, low=lows, up=highs)
-    toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.5, low=lows, up=highs, indpb=1.0)
-    toolbox.register("select", tools.selTournament, tournsize=3)
-
-    def evaluate(individual):
-        coeffs = aero_coeffs.copy()
-        for i, name in enumerate(names):
-            coeffs[name] = individual[i]
-        ordered_coeffs = [coeffs[k] for k in coeff_names]
-        simulated = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, ordered_coeffs)
-        error = np.linalg.norm(simulated - np.array(real_data)) / len(simulated)
-        return (error,) if np.isfinite(error) else (1e6,)
-
-    toolbox.register("evaluate", evaluate)
-    return toolbox
-
-def optimize_coefficients(names):
-    import time
-
-    # Get lower and upper bounds per coefficient
-    lows = [bounds_dict[name][0] for name in names]
-    highs = [bounds_dict[name][1] for name in names]
-
-    toolbox = make_toolbox(names, lows, highs)
-    pop = toolbox.population(n=NPOP)
-    hof = tools.HallOfFame(1)
-    stats = tools.Statistics(lambda ind: ind.fitness.values[0])
-    stats.register("avg", np.mean)
-    stats.register("min", np.min)
-    stats.register("max", np.max)
-
-    logbook = tools.Logbook()
-    logbook.header = ["gen", "nevals", "avg", "min", "max"]
-
-    start_time = time.time()
-    actual_errors = []
-
-    for gen in range(NGENS):
-        offspring = algorithms.varAnd(pop, toolbox, cxpb=0.5, mutpb=0.3)
-        fits = toolbox.map(toolbox.evaluate, offspring)
-        for fit, ind in zip(fits, offspring):
-            ind.fitness.values = fit
-        pop = toolbox.select(offspring, k=len(pop))
-        hof.update(pop)
-        record = stats.compile(pop)
-        logbook.record(gen=gen, nevals=len(pop), **record)
-
-        # Track individual coefficient errors
-        best_ind = tools.selBest(pop, 1)[0]
-        actual_errors.append(TSGA_utils.evaluate_partial_coeffs_error(best_ind, names))
-
-    elapsed_time = time.time() - start_time
-    best_vals = hof[0]
-    print("completed estimations for the set: ", names)
-    for i, name in enumerate(names):
-        print(f"Best for {name}: {best_vals[i]:.6f} (ideal: {ideal_coeffs[name]:.6f})")
+    result = optimize_coefficients_ga(
+        evaluate_coefficients=evaluator.evaluate,
+        bounds=bounds,
+        optimize_names=names,
+        base_coefficients=base_coefficients,
+        config=GAConfig(
+            population_size=20,
+            generations=100,
+            cxpb=0.5,
+            mutpb=0.3,
+            mutation_eta=10.0,
+            mutation_indpb=0.25,
+            elite_size=2,
+            # Auto worker count keeps script portable between machines.
+            n_jobs=0,
+            # Coarse-to-fine minimizes wasted high-fidelity evaluations.
+            enable_multi_fidelity=True,
+            coarse_stride=3,
+            coarse_until_fraction=0.6,
+            coarse_top_k_full=2,
+            seed=seed,
+        ),
+    )
 
     return {
-        "best_values": dict(zip(names, best_vals)),
-        "actual_errors": actual_errors,
-        "fitness_over_time": logbook,
-        "time_seconds": elapsed_time
+        "best_values": {k: result.best_coefficients[k] for k in names},
+        "fitness_over_time": result.history,
+        "actual_error": [evaluate_partial_coeffs_error([result.best_coefficients[n] for n in names], names)],
+        "best_cost": result.best_cost,
+        "full_coefficients": result.best_coefficients,
     }
 
-def wrapped_optimize(names):
-    result = optimize_coefficients(names)
-    return (tuple(names), result)
 
-if __name__ == '__main__':
-    t_end = 50
-    time_vector = np.linspace(0, t_end, t_end * 10)
-    l_input, r_input = TSGA_utils.generate_inputs(time_vector)
-    wind_vect = np.array([0, 0, 0])
-    wind_list = [wind_vect.copy() for _ in range(time_vector.size)]
-    inputs = [l_input, r_input, wind_list]
-    real_data = run_sim.sim_with_noise(time_vector, initial_conditions, inputs, params, True, [ideal_coeffs[k] for k in coeff_names])
-    np.savez("shared_data.npz", time_vector=time_vector, inputs=np.array(inputs, dtype=object), real_data=np.array(real_data))
-    print("__________________STARTING_________________")
-    multiprocessing.freeze_support()
+def run_tsga_modified() -> tuple[dict[str, object], dict[str, object]]:
+    """Run sequential grouped optimization and update running coefficient state."""
+    time_vector = np.linspace(0.0, 50.0, 500)
+    dataset = _build_dataset(time_vector)
 
-    # Define groups of coefficient names to optimize together
-    grouped_names = [
-        ["CDo", "CDa", "CYB", "CLo", "CLa"],
-        ["CD_sym", "CL_sym", "Cl_asym", "Cn_asym"],
-        ["Cmo", "Cma", "Cmq"],
-        ["ClB", "Clp", "Clr"],
-        ["CnB", "Cn_p", "Cn_r"]
-    ]
+    running_coeffs = dict(aero_coeffs)
+    best_coeffs: dict[str, dict[str, float]] = {}
+    metrics: dict[str, dict[str, object]] = {}
 
-    with multiprocessing.Pool() as pool:
-        results = pool.map(wrapped_optimize, grouped_names)
+    for idx, names in enumerate(GROUPED_NAMES):
+        group_key = " + ".join(names)
+        result = optimize_group(names, dataset, running_coeffs, seed=100 + idx)
 
-    # Collect results into dictionaries
-    best_coeffs = {group: res["best_values"] for group, res in results}
-    metrics = {
-        group: {
-            "fitness_over_time": [dict(rec) for rec in res["fitness_over_time"]],
-            "time_seconds": res["time_seconds"],
-            "actual_error": res["actual_errors"]
+        # Later groups see improvements discovered in earlier groups.
+        for name in names:
+            running_coeffs[name] = float(result["best_values"][name])
+
+        best_coeffs[group_key] = result["best_values"]
+        metrics[group_key] = {
+            "fitness_over_time": result["fitness_over_time"],
+            "time_seconds": None,
+            "actual_error": result["actual_error"],
+            "best_cost": result["best_cost"],
         }
-        for group, res in results
-    }
-    with open("tsga_step1_best.json", "w") as f:
+
+    with OUTPUT_BEST.open("w", encoding="utf-8") as f:
         json.dump(best_coeffs, f, indent=4)
 
-    with open("tsga_step1_metrics.json", "w") as f:
+    with OUTPUT_METRICS.open("w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=4)
 
-    print("Step 1 complete. Best coefficients written to tsga_step1_best.json")
-    TSGA_utils.plot_metrics_individually()
+    return best_coeffs, metrics
+
+
+if __name__ == "__main__":
+    best, _ = run_tsga_modified()
+    print("TSGA_modified complete")
+    for group, vals in best.items():
+        print(group)
+        for name, value in vals.items():
+            print(f"  {name}: {value:.6f} (ideal: {ideal_coeffs[name]:.6f})")

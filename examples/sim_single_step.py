@@ -1,33 +1,36 @@
-import minos.physics.six_DoF_simulator as simulator
+from minos.physics.model import ParafoilModel6DOF
+from minos.physics.types import Inputs, State
 import numpy as np
-from utils import rk4
 
 def single_step(dt, params, old_state = None, control_input = None, wind = None):
     """
-    Simulate a single step of the 6-DoF simulator. A good starting example to see exactly whats what.
+    Simulate one RK4 step of the typed 6-DoF parafoil model.
 
     Parameters
     ----------
     dt : float
-        The time step for the simulation.
+        Integration step in seconds.
     params : dictionary
-        Sets up all the masses etc of the system. Main thing to note:
-        params['initial_pos'] = np.array([x,y,z]) - MUST BE SET TO THE POSITION WHERE PARAFOIL DEPLOYED IN WORLD FRAME e.g [100,200,500]
-    old_state : np.darray 
-        The previous state of the system (BODY FRAME). Default None - either ueses defualt values or from params - I dont remeber.
+        Physical parameter overrides for :class:`ParafoilModel6DOF`.
+        Typically includes ``initial_pos`` in world frame.
+    old_state : list[np.ndarray] | None
+        Previous state in sequence form
+        ``[position, velocity_body, eulers, angular_velocity]``.
+        If ``None``, a nominal default state is used.
     control_input : list
-        [L-deflection, R-deflection] - The control input to apply.
-        If None, assumes there is no control input.
-    wind : np.darray
-        1x3 array of wind velocities [x_wind, y_wind, z_wind].
-        If none, assumes no wind
+        Left/right flap deflection command ``[left, right]`` in radians.
+        If ``None``, zero deflection is applied.
+    wind : np.ndarray | None
+        Inertial wind vector ``[wx, wy, wz]`` in m/s.
+        If ``None``, zero wind is used.
     
     Returns
     -------
     new_state : list
-        the new state in the BODY FRAME
+        Updated state sequence in model coordinates.
     inertial_state : list
-        the new state in the WORLD FRAME!
+        Inertial-state sequence
+        ``[position_inertial, velocity_inertial, eulers, euler_rates]``.
     """
     # general stuff you can change if you want
     if wind is None:
@@ -45,9 +48,16 @@ def single_step(dt, params, old_state = None, control_input = None, wind = None)
         # no deflections, just a straight line
         control_input = np.array([0, 0])
     # set up instance of simulator
-    sim = simulator.ParafoilSimulation_6Dof(params, old_state, [control_input, wind])
-    # generate new state using rk4 ode solver
-    new_state = rk4(old_state, sim.get_solver_derivatives, dt)
-    sim.set_state(new_state)
-    inertial_state = sim.get_inertial_state()
-    return new_state, inertial_state
+    sim = ParafoilModel6DOF(
+        params=params,
+        initial_state=State.from_sequence(old_state),
+        initial_inputs=Inputs(control_input[0], control_input[1], wind),
+    )
+    new_state = sim.step(dt)
+    inertial_state = [
+        sim.inertial_position.copy(),
+        sim.inertial_velocity.copy(),
+        new_state.eulers.copy(),
+        sim.euler_rates.copy(),
+    ]
+    return new_state.as_sequence(), inertial_state

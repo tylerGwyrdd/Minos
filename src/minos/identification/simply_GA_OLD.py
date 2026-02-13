@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from deap import base, creator, tools, algorithms
 import multiprocessing
-import run_sim
+from minos.sim import runners as run_sim
 import json
 import os
 import numbers

@@ -1,254 +1,144 @@
-import random
-import numpy as np
-from deap import base, creator, tools, algorithms
-import multiprocessing
-import run_sim
+﻿"""Grouped coefficient identification using refactored identification APIs.
+
+This is the modern implementation of the original mod_v2 experiment.
+"""
+
+from __future__ import annotations
+
 import json
+from pathlib import Path
 
-import TSGA_utils as TSGA_utils
-from TSGA_utils import ideal_coeffs, aero_coeffs, bounds_dict, coeff_names
+import numpy as np
 
-params = {'initial_pos': [0, 0, 500]}
+from minos.identification.core import CoefficientBounds, FlightDataset
+from minos.identification.deap_ga import GAConfig, optimize_coefficients_ga
+from minos.identification.evaluator import TrajectoryEvaluator
+from minos.identification.TSGA_utils import (
+    aero_coeffs,
+    bounds_dict,
+    evaluate_partial_coeffs_error,
+    generate_real_data,
+    generate_straight_flight,
+    ideal_coeffs,
+)
 
-initial_conditions = np.array([
-    np.array([0, 0, 0]),
-    np.array([10, 0, 3]),
-    np.array([0, 0, 0]),
-    np.array([0, 0, 0])
-])
-t_end = 10
-time_vector = np.arange(0, t_end + 0.1, 0.1)
+OUTPUT_BEST = Path("modified_tsga_best_coeffs.json")
+OUTPUT_METRICS = Path("modified_tsga_metrics.json")
+
+PARAMS = {"initial_pos": [0.0, 0.0, 500.0]}
+INITIAL_CONDITIONS = [
+    np.array([0.0, 0.0, 0.0]),
+    np.array([10.0, 0.0, 3.0]),
+    np.array([0.0, 0.0, 0.0]),
+    np.array([0.0, 0.0, 0.0]),
+]
 
 
-# Step 1: Independent optimization of each coefficient
-creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMin)
+GROUPED_NAMES = [
+    ["CDo", "CDa", "CLo", "CLa", "Cmo", "Cma", "Cmq", "CL_sym", "CD_sym"],
+]
 
-NGENS = 100
-NPOP = 20
 
-def unique_individuals(pop):
-    """Work out how close genes are between individuals and return the number of different individuals"""
-    return len(set(tuple(round(g, 5) for g in ind) for ind in pop))
+def _build_dataset(time_vector: np.ndarray) -> FlightDataset:
+    """Create dataset for the straight-flight grouped-identification scenario."""
+    left, right = generate_straight_flight(time_vector)
+    wind = np.zeros((time_vector.size, 3), dtype=float)
+    wind_list = [w.copy() for w in wind]
 
-def compute_genome_variance(population):
-    """Computes variance of each gene across the population and returns mean variance."""
-    genomes = np.array([ind[:] for ind in population])
-    if len(genomes) == 0:
-        return 0.0
-    return np.mean(np.var(genomes, axis=0))
+    measured = generate_real_data(
+        time_vector,
+        left,
+        right,
+        wind_list,
+        PARAMS,
+        np.asarray(INITIAL_CONDITIONS, dtype=object),
+    )
 
-# Custom individual generator based on bounds
-def generate_individual_from_set(names):
-    """Creates from set. Generates individual with just the named coeffs as genes"""
-    std_dev = 0.01
-    base_point = [aero_coeffs[name] for name in names]
-    return creator.Individual([
-        min(max(np.random.normal(loc=base, scale=max(abs(base * std_dev), 1e-3)),
-                bounds_dict[name][0]), bounds_dict[name][1])
-        for name, base in zip(names, base_point)
-    ])
+    return FlightDataset(
+        time_s=time_vector,
+        flap_left=np.asarray(left, dtype=float),
+        flap_right=np.asarray(right, dtype=float),
+        wind_inertial=wind,
+        measured_positions=np.asarray(measured, dtype=float),
+    )
 
-def make_toolbox(names, lows, highs, real_data, inputs):
-    toolbox = base.Toolbox()
-    # random setting from of the specific coefficients
-    toolbox.register("individual_uniform", 
-                     lambda: creator.Individual([random.uniform(l, h) for l, h in zip(lows, highs)]))
-    toolbox.register("individual_gauss", lambda: generate_individual_from_set(names))
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual_gauss)
-    toolbox.register("mate", tools.cxSimulatedBinaryBounded, eta=10, low=lows, up=highs)
-    toolbox.register("mutate", tools.mutPolynomialBounded, eta=10, low=lows, up=highs, indpb=1)
-    toolbox.register("select", tools.selTournament, tournsize=3)
 
-    def evaluate(individual):
-        coeffs = ideal_coeffs.copy()
-        for i, name in enumerate(names):
-           coeffs[name] = individual[i]
-        ordered_coeffs = [coeffs[k] for k in coeff_names]
+def optimize_group(names: list[str], dataset: FlightDataset) -> dict[str, object]:
+    """Optimize one coefficient group while freezing all others at baseline."""
+    bounds = CoefficientBounds(by_name=bounds_dict)
+    evaluator = TrajectoryEvaluator(
+        dataset=dataset,
+        params=PARAMS,
+        initial_conditions=INITIAL_CONDITIONS,
+        inertial=True,
+        break_penalty_scale=1.0,
+    )
 
-        simulated, broke  = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, ordered_coeffs)
-        error = np.linalg.norm(np.square(simulated) - np.square(np.array(real_data))) / (broke * 10)
-        return (error,) if np.isfinite(error) else (1e6,)
+    result = optimize_coefficients_ga(
+        evaluate_coefficients=evaluator.evaluate,
+        bounds=bounds,
+        optimize_names=names,
+        base_coefficients=aero_coeffs,
+        config=GAConfig(
+            population_size=20,
+            generations=120,
+            cxpb=0.5,
+            mutpb=0.35,
+            mutation_eta=10.0,
+            mutation_indpb=0.25,
+            elite_size=3,
+            # Auto parallelism because objective evaluation dominates runtime.
+            n_jobs=0,
+            # Grouped runs benefit from aggressive coarse passes early on.
+            enable_multi_fidelity=True,
+            coarse_stride=3,
+            coarse_until_fraction=0.6,
+            coarse_top_k_full=2,
+            seed=13,
+        ),
+    )
 
-    toolbox.register("evaluate", evaluate)
-    return toolbox
-
-def optimize_coefficients(names, real_data, inputs):
-    import time
-    lows = [bounds_dict[name][0] for name in names]
-    highs = [bounds_dict[name][1] for name in names]
-
-    toolbox = make_toolbox(names, lows, highs, real_data, inputs)
-    pop = toolbox.population(n=NPOP)
-    hof = tools.HallOfFame(1)
-    stats = tools.Statistics(lambda ind: ind.fitness.values[0])
-    stats.register("avg", np.mean)
-    stats.register("min", np.min)
-    stats.register("max", np.max)
-
-    logbook = tools.Logbook()
-    logbook.header = ["gen", "nevals", "avg", "min", "max"]
-
-    start_time = time.time()
-    actual_errors = []
-    # for elitism
-    elite_size = 3
-    mutp_change = 0.4
-    mutp_base = 0.4
-
-    # for stats
-    stats = tools.Statistics(lambda ind: ind.fitness.values[0])
-    stats.register("avg", np.mean)
-    stats.register("std", np.std)
-    stats.register("min", np.min)
-    stats.register("max", np.max)
-
-    for gen in range(NGENS):
-        mutation_chance = mutp_base + mutp_change * ( 1 - gen / NGENS)
-        offspring = algorithms.varAnd(pop, toolbox, cxpb=0.5, mutpb = 1)
-        fits = toolbox.map(toolbox.evaluate, offspring)
-        for fit, ind in zip(fits, offspring):
-            ind.fitness.values = fit
-                # sort out the population for elitism
-        if gen > 0:
-            pop = toolbox.select(offspring, k=len(pop) - elite_size) + elites
-        else:
-            pop = toolbox.select(offspring, k=len(pop))
-        
-        # get the elites of this population
-        elites = tools.selBest(pop, elite_size)
-
-        # --------- Stats -----------------
-        hof.update(pop)
-        record = stats.compile(pop)
-        if gen % 10 == 0:
-            best = elites[0].fitness.values[0]
-            genome_var = compute_genome_variance(pop)
-            avg = record["avg"]
-            std = record["std"]
-            uniq = unique_individuals(pop)
-            print(f"Run: {names} | Gen: {gen} | Best: {best:.6f} | Avg: {avg:.6f} | Std: {std:.6f} | GenomeVar: {genome_var:.6f} | Unique individuals: {uniq} / {len(pop)}")
-        if gen % 100 == 0 and gen != 0:
-            for i, name in enumerate(names):
-                print(f"Best for {name}: {hof[0][i]:.6f} ideal: {ideal_coeffs[name]:.6f} ")
-
-        logbook.record(gen=gen, nevals=len(pop), **record)
-        actual_errors.append(TSGA_utils.evaluate_partial_coeffs_error(elites[0], names))
-
-    # ----------------------------------------------------------------------
-
-    elapsed_time = time.time() - start_time
-    best_vals = hof[0]
-    print("completed estimations for the set: ", names)
-    for i, name in enumerate(names):
-
-        print(f"Best for {name}: {best_vals[i]:.6f} (ideal: {ideal_coeffs[name]:.6f})")
-    
-    coeffs = aero_coeffs.copy()
-    for i, name in enumerate(names):
-        coeffs[name] = best_vals[i]
-    ordered_coeffs = [coeffs[k] for k in coeff_names]
-    # Convert to ordered list of values matching the order of `names`
-    sim_pos, died = run_sim.bare_simulate_model(time_vector, initial_conditions, inputs, params, True, ordered_coeffs, True)
-
-    print(died)
-    TSGA_utils.plot_3D_position_scatter(sim_pos)
-    #TSGA_utils.plot_3D_geometry_comparision(time_vector,real_data, initial_conditions, inputs, params, ordered_coeffs)
-    TSGA_utils.save_population_to_json(pop, names, f"population_gen_{gen}.json")
+    partial_errors = evaluate_partial_coeffs_error([result.best_coefficients[n] for n in names], names)
     return {
-        "best_values": dict(zip(names, best_vals)),
-        "actual_errors": actual_errors,
-        "fitness_over_time": logbook,
-        "time_seconds": elapsed_time
+        "best_values": {k: result.best_coefficients[k] for k in names},
+        "actual_errors": [partial_errors],
+        "fitness_over_time": result.history,
+        "best_cost": result.best_cost,
     }
 
-def wrapped_optimize(args):
-    names, real_data, inputs = args
-    result = optimize_coefficients(names, real_data, inputs)
-    return (" + ".join(names), result)
 
-if __name__ == '__main__':
-    wind_vect = np.array([0, 0, 0])
-    wind_list = [wind_vect.copy() for _ in range(time_vector.size)]
-    grouped_names = [
-        ["CDo", "CDa", "CLo", "CLa", "Cmo", "Cma", "Cmq", "CL_sym", "CD_sym"]
-    ]
-    """        ["CDo"],
-        ["CDa"],
-        ["CLo"],
-        ["CLa"],
-        ["Cma"],
-        ["Cmq"],
-        ["CL_sym"],
-        ["CD_sym"]
-    ]
-    """
-    real_datasets = []
-    inputs_list = []
+def run_mod_v2() -> tuple[dict[str, object], dict[str, object]]:
+    """Run grouped-identification workflow and emit legacy-compatible outputs."""
+    time_vector = np.arange(0.0, 10.1, 0.1)
+    dataset = _build_dataset(time_vector)
 
-    left, right = TSGA_utils.generate_straight_flight(time_vector)
-    inputs_list.append([left, right, wind_list])
+    best_coeffs: dict[str, dict[str, float]] = {}
+    metrics: dict[str, dict[str, object]] = {}
 
-    """    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])
-    inputs_list.append([left, right, wind_list])"""
-    coeffs = ideal_coeffs.copy()
-    for i, name in enumerate(grouped_names[0]):
-        print("setting", name , " to ", ideal_coeffs[name])
-        coeffs[name] = ideal_coeffs[name]
-    ordered_coeffs = [coeffs[k] for k in coeff_names]
-    a_data_set = TSGA_utils.generate_real_data(time_vector, left, right, wind_list, params, initial_conditions)
-    TSGA_utils.plot_3D_position_scatter(a_data_set)
-    real_datasets.append(a_data_set)
-
-    """    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)
-    real_datasets.append(a_data_set)"""
-
-
-    """    for _ in range(4):
-        left, right = TSGA_utils.genertate_spirial_flight(time_vector)
-        left = match_length(left, len(time_vector))
-        right = match_length(right, len(time_vector))
-        inputs_list.append([left, right, wind_list])
-        real_datasets.append(TSGA_utils.generate_real_data(time_vector, left, right, wind_vect, params, initial_conditions))"""
-
-    tasks = list(zip(grouped_names, real_datasets, inputs_list))
-    print("RUNNIN")
-    with multiprocessing.Pool() as pool:
-        results = pool.map(wrapped_optimize, tasks)
-        
-    best_coeffs = {group: res["best_values"] for group, res in results}
-    metrics = {
-        group: {
-            "fitness_over_time": [dict(rec) for rec in res["fitness_over_time"]],
-            "time_seconds": res["time_seconds"],
-            "actual_error": res["actual_errors"]
+    for names in GROUPED_NAMES:
+        key = " + ".join(names)
+        # Each group is reported independently to match historical metrics files.
+        run_data = optimize_group(names, dataset)
+        best_coeffs[key] = run_data["best_values"]
+        metrics[key] = {
+            "fitness_over_time": run_data["fitness_over_time"],
+            "actual_error": run_data["actual_errors"],
+            "best_cost": run_data["best_cost"],
         }
-        for group, res in results
-    }
-    filename = "hello "
-    with open("modified_tsga_best_coeffs.json", "w") as f:
+
+    with OUTPUT_BEST.open("w", encoding="utf-8") as f:
         json.dump(best_coeffs, f, indent=4)
 
-    with open("modified_tsga_metrics.json", "w") as f:
+    with OUTPUT_METRICS.open("w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=4)
 
-    
-
-    print("Step 1 complete. Best coefficients written to tsga_step1_best.json")
-    TSGA_utils.plot_metrics_individually("modified_tsga_metrics.json")
-    TSGA_utils.plot_individual_errors("modified_tsga_metrics.json")
+    return best_coeffs, metrics
 
 
-
+if __name__ == "__main__":
+    best, _ = run_mod_v2()
+    print("mod_v2 complete")
+    for group, vals in best.items():
+        print(group)
+        for name, value in vals.items():
+            print(f"  {name}: {value:.6f} (ideal: {ideal_coeffs[name]:.6f})")

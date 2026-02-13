@@ -1,29 +1,54 @@
 # Guided Parafoil Simulation
 
-A Python-based simulation environment for modeling and testing the dynamics of guided parafoils. 
+Python package for simulating and analyzing a guided parafoil with a 6-DoF physics model.
 
-The project is structured as a Python package and uses [Poetry](https://python-poetry.org/) for dependency management and packaging.
+## Prerequisites
 
-## Features
+- Python `3.12+`
+- [Poetry](https://python-poetry.org/)
 
-- **6-DOF Dynamics:** Nonlinear six degrees-of-freedom parafoil simulation.
-- **Aerodynamic Modeling:** Parameterized with 16 aerodynamic coefficients for lift, drag, and moments.
-- **Control Surfaces:** Simulate flap deflections and other control inputs.
-- **Wind Modeling:** Incorporates time-varying wind vectors.
-- **Extensible Architecture:** Easy to modify for new control laws or environmental conditions.
-- **Genetic Algorithm Integration:** Supports optimization of aerodynamic coefficients using DEAP-based GA.
-
-## Installation
-
-Make sure you have [Poetry](https://python-poetry.org/) installed. Then install the package in editable mode:
+## Setup
 
 ```bash
 git clone <repo-url>
-cd guided-parafoil-sim
+cd Level_4_project
 poetry install
-poetry shell
 ```
 
-## reference
+Recommended (no activation needed):
 
-check out the [documentation](https://tylergwyrdd.github.io/Minos/)
+```bash
+poetry run python examples/physics_model_3d_example.py
+```
+
+Optional (activate the Poetry environment manually):
+
+PowerShell:
+
+```powershell
+Invoke-Expression (poetry env activate)
+```
+
+Bash/Zsh:
+
+```bash
+eval "$(poetry env activate)"
+```
+
+## Run The Physics + 3D Example
+
+This runs the generated example script that uses the physics model, plotting utilities, and 3D visualizer:
+
+```bash
+poetry run python examples/physics_model_3d_example.py
+```
+
+Expected terminal output:
+
+```text
+Example completed successfully.
+```
+
+## Documentation
+
+- Project docs: https://tylergwyrdd.github.io/Minos/

@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import run_sim
+from minos.sim import runners as run_sim
 import json
 
 

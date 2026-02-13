@@ -20,6 +20,9 @@ plugins:
 nav:
   - Home: index.md
   - Usage: usage.md
+  - Architecture: architecture.md
+  - Simulation Runners: simulation.md
   - Physics Simulator: physics.md
   - Guidance: guidance.md
   - Model Identification: identification.md
+  - Examples: examples.md

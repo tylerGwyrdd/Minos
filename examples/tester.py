@@ -1,4 +1,4 @@
-import run_sim
+from minos.sim import runners as run_sim
 import TSGA_utils as TSGA_utils
 import numpy as np
 
