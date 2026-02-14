@@ -13,6 +13,7 @@ from typing import Mapping, Sequence
 import numpy as np
 
 from minos.identification.core import CoefficientCodec, FlightDataset
+from minos.metrics import PositionErrorMetrics, apply_early_stop_penalty, compute_position_error_metrics
 from minos.sim.runners import bare_simulate_model
 
 
@@ -27,6 +28,8 @@ class EvaluationResult:
     cost: float
     simulated_positions: np.ndarray
     completed_steps: int
+    position_metrics: PositionErrorMetrics | None = None
+    penalty_factor: float = 1.0
 
 
 class TrajectoryEvaluator:
@@ -112,15 +115,20 @@ class TrajectoryEvaluator:
 
         sim_cut = sim_arr[:n]
         real_cut = eval_measured[:n]
-        rmse = float(np.sqrt(np.mean(np.sum((sim_cut - real_cut) ** 2, axis=1))))
-
-        # If a simulation breaks early, missing points indicate instability or
-        # physically implausible parameter sets. We scale RMSE by completion.
-        missing = max(0, len(eval_time) - int(completed))
-        miss_ratio = missing / len(eval_time)
-        penalty = 1.0 + self.break_penalty_scale * miss_ratio
-        cost = rmse * penalty
+        pos_metrics = compute_position_error_metrics(reference=real_cut, measured=sim_cut)
+        cost, penalty = apply_early_stop_penalty(
+            base_cost=pos_metrics.rmse_m,
+            total_steps=len(eval_time),
+            completed_steps=int(completed),
+            scale=self.break_penalty_scale,
+        )
 
         if not np.isfinite(cost):
             cost = 1e6
-        return EvaluationResult(cost=float(cost), simulated_positions=sim_arr, completed_steps=int(completed))
+        return EvaluationResult(
+            cost=float(cost),
+            simulated_positions=sim_arr,
+            completed_steps=int(completed),
+            position_metrics=pos_metrics,
+            penalty_factor=float(penalty),
+        )

@@ -124,6 +124,9 @@ def optimize_coefficients_ga(
         resolved_jobs = max(1, (os.cpu_count() or 1) - 1)
     resolved_jobs = max(1, resolved_jobs)
 
+    # Thread backend keeps callable wiring simple (no pickling of evaluator
+    # closures). This is robust in notebook/sandbox contexts.
+    # TODO: Intent unclear — appears to assume objective runtime is dominated by NumPy/SciPy calls that release the GIL. Confirm.
     executor = ThreadPoolExecutor(max_workers=resolved_jobs) if resolved_jobs > 1 else None
     eval_map = executor.map if executor is not None else map
 
@@ -137,6 +140,8 @@ def optimize_coefficients_ga(
             sample_stride = int(config.coarse_stride) if use_coarse else 1
 
             offspring = algorithms.varAnd(population, toolbox, cxpb=config.cxpb, mutpb=config.mutpb)
+            # `eval_map` preserves input order, which is required because fitness
+            # values are zipped back onto `offspring` by position.
             fits = list(eval_map(lambda ind: toolbox.evaluate(ind, sample_stride=sample_stride), offspring))
             for fit, ind in zip(fits, offspring):
                 ind.fitness.values = fit
@@ -145,6 +150,8 @@ def optimize_coefficients_ga(
                 # Re-score a few best coarse candidates at full fidelity to
                 # reduce ranking noise from downsampling.
                 top = tools.selBest(offspring, k=min(int(config.coarse_top_k_full), len(offspring)))
+                # Full-fidelity rescoring only on top coarse candidates limits
+                # compute while protecting selection quality.
                 top_fits = list(eval_map(lambda ind: toolbox.evaluate(ind, sample_stride=1), top))
                 for fit, ind in zip(top_fits, top):
                     ind.fitness.values = fit

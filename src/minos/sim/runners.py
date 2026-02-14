@@ -7,7 +7,9 @@ from typing import Iterable
 
 import numpy as np
 
-from minos.gnc import GncStack, observation_from_sim
+from minos.gnc.adapters import observation_from_sim
+from minos.gnc.interfaces import GuidanceVisualization
+from minos.gnc.stack import GncStack
 from minos.physics.model import ParafoilModel6DOF
 from minos.physics.types import Inputs, State
 from minos.utilities.snapshots import SimulationSnapshot
@@ -40,7 +42,17 @@ def _inertial_state(sim: ParafoilModel6DOF) -> list[np.ndarray]:
     ]
 
 
-def _snapshot(sim: ParafoilModel6DOF, t: float, heading_pair: list[float] | None = None) -> SimulationSnapshot:
+def _snapshot(
+    sim: ParafoilModel6DOF,
+    t: float,
+    heading_pair: list[float] | None = None,
+    phase: str | None = None,
+    flare_magnitude: float | None = None,
+    wind_estimate: np.ndarray | None = None,
+    flap_command: tuple[float, float] | None = None,
+    flap_command_raw: tuple[float, float] | None = None,
+    guidance_visualization: GuidanceVisualization | None = None,
+) -> SimulationSnapshot:
     """Build one typed log snapshot from the current simulator state."""
     diag = sim.last_diagnostics
     heading_current = None
@@ -76,6 +88,14 @@ def _snapshot(sim: ParafoilModel6DOF, t: float, heading_pair: list[float] | None
         flap_right=sim.flap_right,
         heading_current=heading_current,
         heading_desired=heading_desired,
+        phase=phase,
+        flare_magnitude=flare_magnitude,
+        wind_estimate=None if wind_estimate is None else np.asarray(wind_estimate, dtype=float),
+        flap_left_command=None if flap_command is None else float(flap_command[0]),
+        flap_right_command=None if flap_command is None else float(flap_command[1]),
+        flap_left_command_raw=None if flap_command_raw is None else float(flap_command_raw[0]),
+        flap_right_command_raw=None if flap_command_raw is None else float(flap_command_raw[1]),
+        guidance_visualization=guidance_visualization,
     )
 
 
@@ -214,8 +234,31 @@ def run_simulation_with_gnc(sim: ParafoilModel6DOF, steps: int, dt: float, gnc_s
         current_heading = float(obs.state.eulers[2])
         inputs = gnc_stack.update(obs, dt)
         desired_heading = float(gnc_stack.last_guidance.desired_heading)
+        phase = getattr(gnc_stack.mission, "phase", None)
+        flare = float(gnc_stack.last_guidance.flare_magnitude) if gnc_stack.last_guidance is not None else None
+        guidance_visualization = None if gnc_stack.last_guidance is None else gnc_stack.last_guidance.visualization
+        wind_est = None if gnc_stack.last_nav is None else gnc_stack.last_nav.wind_inertial_estimate
+        flap_cmd = None
+        if gnc_stack.last_control is not None:
+            flap_cmd = (float(gnc_stack.last_control.flap_left), float(gnc_stack.last_control.flap_right))
+        flap_cmd_raw = None
+        if gnc_stack.last_control_raw is not None:
+            flap_cmd_raw = (float(gnc_stack.last_control_raw.flap_left), float(gnc_stack.last_control_raw.flap_right))
+
         sim.set_inputs(inputs)
         sim.step(dt)
-        data.append(_snapshot(sim, t, heading_pair=[current_heading, desired_heading]))
+        data.append(
+            _snapshot(
+                sim,
+                t,
+                heading_pair=[current_heading, desired_heading],
+                phase=phase,
+                flare_magnitude=flare,
+                wind_estimate=wind_est,
+                flap_command=flap_cmd,
+                flap_command_raw=flap_cmd_raw,
+                guidance_visualization=guidance_visualization,
+            )
+        )
         t += dt
     return data

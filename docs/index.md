@@ -6,6 +6,7 @@ modular architecture:
 - `minos.gnc` for navigation, guidance, and control strategies,
 - `minos.sim.runners` for canonical open-loop and closed-loop execution loops,
 - `minos.identification` for aerodynamic coefficient fitting workflows.
+- `minos.parallel` for reusable sequential/thread/process task execution.
 
 The project is organized to support repeatable strategy comparison:
 

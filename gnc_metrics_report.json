@@ -1,0 +1,108 @@
+{
+  "runs": [
+    {
+      "scenario_name": "baseline_wind_1_1",
+      "method_name": "pid_default",
+      "samples": 1397,
+      "sim_time_s": 139.59999999999636,
+      "landed": true,
+      "landing_error_x_m": -277.76815327399237,
+      "landing_error_y_m": 523.8388981567404,
+      "landing_error_xy_m": 592.926924835862,
+      "heading_mae_deg": 12.036437850569161,
+      "heading_rmse_deg": 25.673150154863833,
+      "heading_p95_deg": 57.39535925389591,
+      "control_effort_l1": 31.354104698848587,
+      "control_rate_l1": 394.47010700838575,
+      "saturation_fraction": 0.0,
+      "clip_events": 0,
+      "wind_rmse_xy_mps": 120.90269074146732,
+      "phase_transition_count": 2,
+      "phase_durations_s": {
+        "initialising": 38.10000000000027,
+        "homing": 75.19999999999757,
+        "Final Approach": 26.399999999998514
+      },
+      "flare_started": true,
+      "flare_start_time_s": 134.39999999999665,
+      "flare_start_altitude_m": 19.5227301429278
+    },
+    {
+      "scenario_name": "baseline_wind_1_1",
+      "method_name": "pid_tighter",
+      "samples": 1405,
+      "sim_time_s": 140.3999999999963,
+      "landed": true,
+      "landing_error_x_m": -281.4321554708336,
+      "landing_error_y_m": 526.632972290133,
+      "landing_error_xy_m": 597.1150187661498,
+      "heading_mae_deg": 11.210233608158918,
+      "heading_rmse_deg": 25.28906048131055,
+      "heading_p95_deg": 57.12281938773897,
+      "control_effort_l1": 36.79857371326959,
+      "control_rate_l1": 507.5177650889748,
+      "saturation_fraction": 0.0,
+      "clip_events": 0,
+      "wind_rmse_xy_mps": 120.13109497599959,
+      "phase_transition_count": 2,
+      "phase_durations_s": {
+        "initialising": 37.700000000000266,
+        "homing": 76.39999999999753,
+        "Final Approach": 26.399999999998514
+      },
+      "flare_started": true,
+      "flare_start_time_s": 135.2999999999966,
+      "flare_start_altitude_m": 19.287664780294563
+    }
+  ],
+  "aggregate": {
+    "pid_default": {
+      "n_runs": 1,
+      "success_rate": 1.0,
+      "mean": {
+        "landing_error_xy_m": 592.926924835862,
+        "heading_mae_deg": 12.036437850569161,
+        "heading_rmse_deg": 25.673150154863833,
+        "control_effort_l1": 31.354104698848587,
+        "control_rate_l1": 394.47010700838575,
+        "saturation_fraction": 0.0,
+        "clip_events": 0.0,
+        "sim_time_s": 139.59999999999636
+      },
+      "std": {
+        "landing_error_xy_m": 0.0,
+        "heading_mae_deg": 0.0,
+        "heading_rmse_deg": 0.0,
+        "control_effort_l1": 0.0,
+        "control_rate_l1": 0.0,
+        "saturation_fraction": 0.0,
+        "clip_events": 0.0,
+        "sim_time_s": 0.0
+      }
+    },
+    "pid_tighter": {
+      "n_runs": 1,
+      "success_rate": 1.0,
+      "mean": {
+        "landing_error_xy_m": 597.1150187661498,
+        "heading_mae_deg": 11.210233608158918,
+        "heading_rmse_deg": 25.28906048131055,
+        "control_effort_l1": 36.79857371326959,
+        "control_rate_l1": 507.5177650889748,
+        "saturation_fraction": 0.0,
+        "clip_events": 0.0,
+        "sim_time_s": 140.3999999999963
+      },
+      "std": {
+        "landing_error_xy_m": 0.0,
+        "heading_mae_deg": 0.0,
+        "heading_rmse_deg": 0.0,
+        "control_effort_l1": 0.0,
+        "control_rate_l1": 0.0,
+        "saturation_fraction": 0.0,
+        "clip_events": 0.0,
+        "sim_time_s": 0.0
+      }
+    }
+  }
+}

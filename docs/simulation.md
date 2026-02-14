@@ -36,6 +36,13 @@ All runners are built around:
 `SimulationSnapshot` is the common data product across open-loop and
 closed-loop runs.
 
+For closed-loop GnC runs, snapshots may additionally include:
+
+- guidance phase label,
+- flare magnitude command,
+- navigation wind estimate,
+- raw and clipped control commands.
+
 ## Design guidance
 
 When adding new simulation behavior:

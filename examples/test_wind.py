@@ -1,4 +1,4 @@
-import numpy as np
+""" import numpy as np
 from scipy.signal import bilinear, lfilter
 import matplotlib.pyplot as plt
 
@@ -70,4 +70,4 @@ plt.ylabel("Altitude (m)")
 plt.title("Wind Direction vs Altitude (with Dryden Turbulence)")
 plt.grid()
 
-plt.show()
+plt.show() """

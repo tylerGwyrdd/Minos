@@ -9,6 +9,7 @@ import numpy as np
 from minos.physics.types import Inputs
 
 from .interfaces import (
+    ControlCommand,
     Controller,
     GuidanceLaw,
     MissionContext,
@@ -49,6 +50,7 @@ class GncStack:
         self.last_nav: NavigationEstimate | None = None
         self.last_guidance = None
         self.last_control = None
+        self.last_control_raw = None
 
     def update(self, observation: Observation, dt: float) -> Inputs:
         """Run one full GnC cycle and return physics inputs."""
@@ -63,7 +65,7 @@ class GncStack:
             mission=self.mission,
             dt=dt,
         )
-        control_cmd = self.controller.update(
+        control_cmd_raw = self.controller.update(
             observation=observation,
             nav=nav,
             guidance=guidance_cmd,
@@ -71,9 +73,19 @@ class GncStack:
             dt=dt,
         )
 
-        flap_left, flap_right = self._validate_and_clip_flaps(control_cmd.flap_left, control_cmd.flap_right)
-        control_cmd.flap_left = flap_left
-        control_cmd.flap_right = flap_right
+        raw_left = float(control_cmd_raw.flap_left)
+        raw_right = float(control_cmd_raw.flap_right)
+        flap_left, flap_right = self._validate_and_clip_flaps(raw_left, raw_right)
+        control_cmd = ControlCommand(
+            flap_left=flap_left,
+            flap_right=flap_right,
+            extras=dict(control_cmd_raw.extras),
+        )
+        self.last_control_raw = ControlCommand(
+            flap_left=raw_left,
+            flap_right=raw_right,
+            extras=dict(control_cmd_raw.extras),
+        )
 
         wind = observation.wind_inertial
         if self.config.use_nav_wind_estimate:

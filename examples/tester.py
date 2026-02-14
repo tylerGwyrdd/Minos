@@ -1,4 +1,4 @@
-from minos.sim import runners as run_sim
+""" from minos.sim import runners as run_sim
 import TSGA_utils as TSGA_utils
 import numpy as np
 
@@ -34,3 +34,4 @@ a_data_set,_ = run_sim.bare_simulate_model(time_vector,initial_conditions,inputs
 print(a_data_set)
 TSGA_utils.plot_3D_position(a_data_set)
 
+ """

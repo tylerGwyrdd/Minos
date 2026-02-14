@@ -6,7 +6,15 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ..interfaces import GuidanceCommand, GuidanceLaw, MissionContext, NavigationEstimate, Observation
+from ..interfaces import (
+    GuidanceCommand,
+    GuidanceLaw,
+    GuidanceMarker,
+    GuidanceVisualization,
+    MissionContext,
+    NavigationEstimate,
+    Observation,
+)
 
 
 def _wrap_angle(angle: float) -> float:
@@ -117,11 +125,24 @@ class TApproachGuidance(GuidanceLaw):
         desired_heading, flare_magnitude = self._guidance_update(params, observation)
         mission.extras.update(params)
         mission.phase = str(params.get("mode", mission.phase))
+        ipi = np.asarray(params["IPI"], dtype=float).reshape(3)
+        ftp = np.asarray(params["FTP_centre"], dtype=float).reshape(2)
+        markers = [
+            GuidanceMarker(marker_id="ipi", label="IPI", xyz=ipi.copy(), style_hint={"wind_anchor": True}),
+            GuidanceMarker(
+                marker_id="ftp",
+                label="FTP",
+                xyz=np.array([ftp[0], ftp[1], float(params["final_approach_height"])], dtype=float),
+            ),
+        ]
 
         return GuidanceCommand(
             desired_heading=float(desired_heading),
             flare_magnitude=float(flare_magnitude),
-            extras={"mode": params.get("mode", self.config.mode)},
+            visualization=GuidanceVisualization(markers=markers, mode_styles=dict(self._MODE_STYLES)),
+            extras={
+                "mode": params.get("mode", self.config.mode),
+            },
         )
 
     def _guidance_update(self, params: dict, observation: Observation) -> tuple[float, float]:
@@ -244,3 +265,9 @@ class TApproachGuidance(GuidanceLaw):
         params.setdefault("FTP_centre", np.array([0.0, 0.0], dtype=float))
         params["update_rate"] = float(dt)
         return params
+    _MODE_STYLES: dict[str, dict[str, object]] = {
+        "initialising": {"color": "tab:gray"},
+        "homing": {"color": "tab:blue"},
+        "energy_management": {"color": "tab:orange"},
+        "Final Approach": {"color": "tab:green"},
+    }

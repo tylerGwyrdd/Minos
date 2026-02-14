@@ -35,10 +35,28 @@ Closed-loop modular GnC example:
 poetry run python examples/gnc_3d_example.py
 ```
 
+Closed-loop T-approach v2 example:
+
+```bash
+poetry run python examples/gnc_t_approach_2_example.py --no-show
+```
+
 Headless GnC smoke run:
 
 ```bash
 poetry run python examples/gnc_3d_example.py --no-show
+```
+
+Parallel PID heading-step sweep (process backend):
+
+```bash
+poetry run python examples/parallel_gnc_pid_step_sweep.py --backend process --workers 8 --no-show
+```
+
+If process pools are restricted in your environment, use thread backend:
+
+```bash
+poetry run python examples/parallel_gnc_pid_step_sweep.py --backend thread --workers 6 --no-show
 ```
 
 ## Canonical simulation APIs

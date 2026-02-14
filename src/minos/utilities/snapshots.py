@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from typing import Literal
 
 import numpy as np
 
 from minos.physics.types import State
+
+if TYPE_CHECKING:
+    from minos.gnc.interfaces import GuidanceVisualization
 
 LegacySchema = Literal["run_sim", "main"]
 
@@ -43,6 +47,14 @@ class SimulationSnapshot:
     flap_right: float
     heading_current: float | None = None
     heading_desired: float | None = None
+    phase: str | None = None
+    flare_magnitude: float | None = None
+    wind_estimate: np.ndarray | None = None
+    flap_left_command: float | None = None
+    flap_right_command: float | None = None
+    flap_left_command_raw: float | None = None
+    flap_right_command_raw: float | None = None
+    guidance_visualization: "GuidanceVisualization | None" = None
 
     def __post_init__(self) -> None:
         self.time_s = float(self.time_s)
@@ -69,6 +81,18 @@ class SimulationSnapshot:
         self.Cl = float(self.Cl)
         self.Cn = float(self.Cn)
         self.Cm = float(self.Cm)
+        if self.wind_estimate is not None:
+            self.wind_estimate = np.asarray(self.wind_estimate, dtype=float).reshape(3)
+        if self.flare_magnitude is not None:
+            self.flare_magnitude = float(self.flare_magnitude)
+        if self.flap_left_command is not None:
+            self.flap_left_command = float(self.flap_left_command)
+        if self.flap_right_command is not None:
+            self.flap_right_command = float(self.flap_right_command)
+        if self.flap_left_command_raw is not None:
+            self.flap_left_command_raw = float(self.flap_left_command_raw)
+        if self.flap_right_command_raw is not None:
+            self.flap_right_command_raw = float(self.flap_right_command_raw)
 
     @property
     def flap_pair(self) -> np.ndarray:
@@ -135,4 +159,3 @@ def to_legacy_row(snapshot: SimulationSnapshot, schema: LegacySchema = "run_sim"
         snapshot.M_total.copy(),
         [snapshot.angle_of_attack, snapshot.sideslip_angle],
     ]
-

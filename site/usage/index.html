@@ -12,7 +12,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../api/">
+        <link rel="next" href="../documentation/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -62,6 +62,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#usage" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -218,13 +223,51 @@
   
   
     <li class="md-tabs__item">
-      <a href="../api/" class="md-tabs__link">
+      <a href="../documentation/" class="md-tabs__link">
         
   
   
     
   
-  API Reference
+  Documentation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../simulation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Simulation Runners
 
       </a>
     </li>
@@ -275,13 +318,51 @@
   
   
     <li class="md-tabs__item">
-      <a href="../model_identification.md" class="md-tabs__link">
+      <a href="../parallel/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Parallel Execution
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../identification/" class="md-tabs__link">
         
   
   
     
   
   Model Identification
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
 
       </a>
     </li>
@@ -368,6 +449,21 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Usage
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -381,6 +477,79 @@
 
       </a>
       
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-execution-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recommended execution pattern
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#first-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      First runs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#canonical-simulation-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Canonical simulation APIs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typical-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typical workflow
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -392,12 +561,56 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/" class="md-nav__link">
+      <a href="../documentation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    API Reference
+    Documentation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Simulation Runners
     
   </span>
   
@@ -458,12 +671,56 @@
   
   
     <li class="md-nav__item">
-      <a href="../model_identification.md" class="md-nav__link">
+      <a href="../parallel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Parallel Execution
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../identification/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     Model Identification
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Examples
     
   </span>
   
@@ -490,6 +747,70 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-execution-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recommended execution pattern
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#first-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      First runs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#canonical-simulation-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Canonical simulation APIs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typical-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typical workflow
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -508,9 +829,54 @@
   
 
 
-  <h1>Usage</h1>
-
-
+<h1 id="usage">Usage</h1>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Python <code>3.12+</code></li>
+<li>Poetry</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<pre><code class="language-bash">git clone &lt;repo-url&gt;
+cd Level_4_project
+poetry install
+</code></pre>
+<h2 id="recommended-execution-pattern">Recommended execution pattern</h2>
+<p>Use Poetry without manually activating environments:</p>
+<pre><code class="language-bash">poetry run python &lt;script.py&gt;
+</code></pre>
+<h2 id="first-runs">First runs</h2>
+<p>Open-loop physics + plots + 3D animation:</p>
+<pre><code class="language-bash">poetry run python examples/physics_model_3d_example.py
+</code></pre>
+<p>Closed-loop modular GnC example:</p>
+<pre><code class="language-bash">poetry run python examples/gnc_3d_example.py
+</code></pre>
+<p>Closed-loop T-approach v2 example:</p>
+<pre><code class="language-bash">poetry run python examples/gnc_t_approach_2_example.py --no-show
+</code></pre>
+<p>Headless GnC smoke run:</p>
+<pre><code class="language-bash">poetry run python examples/gnc_3d_example.py --no-show
+</code></pre>
+<p>Parallel PID heading-step sweep (process backend):</p>
+<pre><code class="language-bash">poetry run python examples/parallel_gnc_pid_step_sweep.py --backend process --workers 8 --no-show
+</code></pre>
+<p>If process pools are restricted in your environment, use thread backend:</p>
+<pre><code class="language-bash">poetry run python examples/parallel_gnc_pid_step_sweep.py --backend thread --workers 6 --no-show
+</code></pre>
+<h2 id="canonical-simulation-apis">Canonical simulation APIs</h2>
+<p>Use <code>minos.sim.runners</code> as the main integration surface:</p>
+<ul>
+<li><code>simulate_model</code> for open-loop schedule-driven runs.</li>
+<li><code>run_simulation_with_gnc</code> for closed-loop GnC runs.</li>
+<li><code>bare_simulate_model</code>, <code>multi_obj_sim</code>, and noise variants for identification workflows.</li>
+</ul>
+<h2 id="typical-workflow">Typical workflow</h2>
+<ol>
+<li>Build scenario and initial state in physics terms.</li>
+<li>Choose open-loop or closed-loop runner.</li>
+<li>Run simulation to produce <code>SimulationSnapshot</code> data.</li>
+<li>Plot/analyze with utilities or custom scripts.</li>
+</ol>
 
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Literal
 
 import matplotlib.animation as animation
@@ -10,6 +11,8 @@ import numpy as np
 from matplotlib.widgets import Button, Slider
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial.transform import Rotation as R
+
+from .mode_colors import mode_color_lookup, normalize_mode_series
 
 AngleUnit = Literal["rad", "deg"]
 PositionFrame = Literal["NED", "ENU"]
@@ -25,39 +28,53 @@ def visualize_parafoil_pose(
     angle_unit: AngleUnit = "rad",
     frame: PositionFrame = "NED",
     show: bool = True,
+    mode_series: Sequence[str | None] | None = None,
+    wind_inertial_series: np.ndarray | list[np.ndarray] | None = None,
 ) -> tuple[plt.Figure, plt.Axes, animation.FuncAnimation | None]:
-    """Visualize parafoil motion as a 3D animation.
+    """Animate parafoil attitude and trajectory in 3D.
 
-    Parameters
-    ----------
-    euler_series
-        Sequence of Euler angles over time, shape ``(N, 3)``.
-    position_series
-        Sequence of positions over time, shape ``(N, 3)``.
-    interval
-        Base animation interval in milliseconds.
-    slowmo_factor
-        Scale factor applied to ``interval``.
-    save_path
-        Optional output GIF path. If ``None``, no file is saved.
-    angle_unit
-        ``"rad"`` or ``"deg"`` for ``euler_series``.
-    frame
-        Display/navigation frame: ``"NED"`` or ``"ENU"``.
+    This utility visualizes body axes, canopy geometry, and trajectory history.
+    It can optionally color trajectory by guidance mode and overlay wind in the
+    **body frame** to aid interpretation of flight-relative disturbances.
 
-        Notes
-        -----
-        - ``euler_series`` is interpreted as body attitude relative to NED.
-        - ``position_series`` is interpreted as NED coordinates.
-        - When ``frame="ENU"``, both attitude and position are transformed
-          from NED to ENU for display.
-    show
-        If ``True``, call ``plt.show()``.
+    ### Parameters
+    - `euler_series` (`np.ndarray | list[np.ndarray]`): Euler attitude series,
+      shape `(N, 3)`.
+    - `position_series` (`np.ndarray | list[np.ndarray]`): Position series,
+      shape `(N, 3)`.
+    - `interval` (`int`): Base animation interval in milliseconds.
+    - `slowmo_factor` (`float`): Multiplier applied to `interval`.
+    - `save_path` (`str | None`): Optional output GIF path.
+    - `angle_unit` (`Literal["rad", "deg"]`): Units for `euler_series`.
+    - `frame` (`Literal["NED", "ENU"]`): Display frame.
+    - `show` (`bool`): If `True`, call `plt.show()`.
+    - `mode_series` (`Sequence[str | None] | None`): Optional mode label per sample.
+    - `wind_inertial_series` (`np.ndarray | list[np.ndarray] | None`):
+      Optional wind in inertial **NED** frame, shape `(N, 3)`.
 
-    Returns
-    -------
-    tuple[plt.Figure, plt.Axes, matplotlib.animation.FuncAnimation | None]
-        Matplotlib figure, axis, and animation object (if created).
+    ### Returns
+    - `tuple[plt.Figure, plt.Axes, animation.FuncAnimation | None]`:
+      Figure, axis, and animation object (if created).
+
+    ### Raises
+    - `ValueError`: If input shapes are inconsistent, or frame/unit options are invalid.
+
+    ### Notes
+    - `euler_series` and `position_series` are interpreted as NED-native data.
+    - For `frame="ENU"`, both trajectory and attitude are transformed for display.
+    - Wind overlay is computed as `wind_body = R_nb^T * wind_ned` per frame.
+    - Animation timing assumes a fixed update interval across frames.
+
+    ### Example
+    ```python
+    fig, ax, ani = visualize_parafoil_pose(
+        euler_series=eulers,
+        position_series=positions,
+        mode_series=modes,
+        wind_inertial_series=wind_series,
+        show=False,
+    )
+    ```
     """
     eulers = np.asarray(euler_series, dtype=float)
     positions = np.asarray(position_series, dtype=float)
@@ -73,8 +90,17 @@ def visualize_parafoil_pose(
 
     eulers_deg = np.degrees(eulers) if angle_unit == "rad" else eulers.copy()
     num_frames = eulers_deg.shape[0]
+    wind_ned: np.ndarray | None = None
+    if wind_inertial_series is not None:
+        wind_ned = np.asarray(wind_inertial_series, dtype=float)
+        if wind_ned.shape != eulers.shape:
+            raise ValueError("wind_inertial_series must have shape (N, 3) matching euler_series.")
+    modes = normalize_mode_series(mode_series, num_frames)
+    color_by_mode = mode_color_lookup(modes)
+    has_mode_data = any(mode != "unknown" for mode in modes)
     ned_to_enu = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, -1.0]])
     if frame_mode == "ENU":
+        # Convert NED position samples into ENU for visualization only.
         positions_view = positions @ ned_to_enu.T
     else:
         positions_view = positions.copy()
@@ -96,8 +122,6 @@ def visualize_parafoil_pose(
     quivers: list = []
     labels: list = []
     parafoil_poly = None
-    trail_line = None
-    trail_positions: list[np.ndarray] = []
 
     wing_span = 2.0
     chord_length = 0.6
@@ -162,15 +186,14 @@ def visualize_parafoil_pose(
         ax.set_title(title)
 
     def draw_frame(frame_idx: int) -> None:
-        nonlocal quivers, labels, parafoil_poly, trail_line
+        nonlocal quivers, labels, parafoil_poly
         current_frame[0] = frame_idx
-        if follow_mode[0] and frame_idx == 0:
-            trail_positions.clear()
 
         roll, pitch, yaw = eulers_deg[frame_idx]
         pos = positions_view[frame_idx]
         r_ned = R.from_euler("xyz", [roll, pitch, yaw], degrees=True).as_matrix()
         if frame_mode == "ENU":
+            # Rotate attitude basis into the displayed frame.
             r_view = ned_to_enu @ r_ned
         else:
             r_view = r_ned
@@ -193,9 +216,39 @@ def visualize_parafoil_pose(
         parafoil_poly = Poly3DCollection([rotated_parafoil], alpha=0.4, color="gray")
         ax.add_collection3d(parafoil_poly)
 
-        trail_positions.append(pos.copy())
-        trail_array = np.array(trail_positions)
-        trail_line = ax.plot3D(trail_array[:, 0], trail_array[:, 1], trail_array[:, 2], color="black")[0]
+        if wind_ned is not None:
+            # Convert inertial wind to body-frame components, then render from body origin.
+            wind_body = r_ned.T @ wind_ned[frame_idx]
+            wind_view = r_view @ wind_body
+            wind_mag = float(np.linalg.norm(wind_body))
+            if wind_mag > 1.0e-9:
+                wind_dir = wind_view / float(np.linalg.norm(wind_view))
+                # Length is scaled for readability so the arrow remains visible
+                # across a wide range of wind magnitudes.
+                wind_len = float(np.clip(0.3 * wind_mag, 0.6, 2.0))
+                wind_vec = wind_dir * wind_len
+                ax.quiver(*pos, *wind_vec, color="tab:orange", linewidth=2.2)
+                ax.text(*(pos + wind_vec * 1.1), "Wind (body)", color="tab:orange")
+
+        if has_mode_data and frame_idx > 0:
+            seen: set[str] = set()
+            for idx in range(frame_idx):
+                mode = modes[idx]
+                segment = positions_view[idx : idx + 2]
+                label = mode if mode not in seen else "_nolegend_"
+                ax.plot3D(
+                    segment[:, 0],
+                    segment[:, 1],
+                    segment[:, 2],
+                    color=color_by_mode[mode],
+                    linewidth=2,
+                    label=label,
+                )
+                seen.add(mode)
+            ax.legend(loc="upper right", title="Mode")
+        else:
+            trail = positions_view[: frame_idx + 1]
+            ax.plot3D(trail[:, 0], trail[:, 1], trail[:, 2], color="black")
 
         if follow_mode[0]:
             zoom = 3.0
@@ -232,7 +285,24 @@ def visualize_parafoil_pose(
             draw_frame(current_frame[0])
         else:
             configure_axis(f"Full Trajectory ({frame_mode} Frame)")
-            ax.plot3D(positions_view[:, 0], positions_view[:, 1], positions_view[:, 2], color="black")
+            if has_mode_data and num_frames > 1:
+                seen: set[str] = set()
+                for idx in range(num_frames - 1):
+                    mode = modes[idx]
+                    segment = positions_view[idx : idx + 2]
+                    label = mode if mode not in seen else "_nolegend_"
+                    ax.plot3D(
+                        segment[:, 0],
+                        segment[:, 1],
+                        segment[:, 2],
+                        color=color_by_mode[mode],
+                        linewidth=2,
+                        label=label,
+                    )
+                    seen.add(mode)
+                ax.legend(loc="upper right", title="Mode")
+            else:
+                ax.plot3D(positions_view[:, 0], positions_view[:, 1], positions_view[:, 2], color="black")
             ax.set_xlim(limits[0][0], limits[1][0])
             ax.set_ylim(limits[0][1], limits[1][1])
             ax.set_zlim(limits[0][2], limits[1][2])

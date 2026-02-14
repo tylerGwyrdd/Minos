@@ -30,7 +30,7 @@ from minos.gnc import (
 from minos.physics.model import ParafoilModel6DOF
 from minos.physics.types import Inputs, State
 from minos.sim.runners import run_simulation_with_gnc
-from minos.utilities.graphs import PlotKey, plot_selected_parameters
+from minos.utilities.graphs import PlotConfig, PlotKey, plot_selected_parameters
 from minos.utilities.visual_3D import visualize_parafoil_pose
 
 
@@ -137,14 +137,18 @@ def main(show_plots: bool = True) -> None:
     # -------------------------------------------------
     plot_selected_parameters(
         snapshots,
-        {
+        PlotConfig(
+            enabled={
             PlotKey.POSITION,
             PlotKey.EULER_ANGLES,
             PlotKey.WIND_VECTOR,
             PlotKey.DEFLECTION,
             PlotKey.HEADINGS,
             PlotKey.INERTIAL_POSITION_3D,
-        },
+            PlotKey.INERTIAL_POSITION_XY,
+            },
+            include_guidance_annotations=True,
+        ),
     )
 
     # ---------------------------------------------
@@ -154,6 +158,7 @@ def main(show_plots: bool = True) -> None:
     # Viewer expects position series aligned with euler samples.
     # Here we use model-local NED position from state.
     ned_positions = np.array([s.state.position for s in snapshots])
+    winds = np.array([s.wind_inertial for s in snapshots])
 
     # Show 3D motion viewer:
     # - angle_unit="rad": state eulers are in radians.
@@ -164,6 +169,8 @@ def main(show_plots: bool = True) -> None:
         angle_unit="rad",
         frame="NED",
         show=show_plots,
+        mode_series=[s.phase for s in snapshots],
+        wind_inertial_series=winds,
     )
 
     # ----------------------------------------------------

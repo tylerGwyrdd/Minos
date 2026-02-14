@@ -12,6 +12,10 @@ The refactored identification flow provides a typed, modular stack in
 
 This lets old script workflows remain in place while enabling incremental migration to modular code.
 
+The evaluator now exposes shared trajectory error metrics (`rmse`, `mae`, `p95`,
+final error) through `EvaluationResult.position_metrics`, while keeping the
+existing scalar `cost` contract for GA compatibility.
+
 ## Design Rationale
 
 The code is structured this way to keep runtime-heavy experiments manageable and

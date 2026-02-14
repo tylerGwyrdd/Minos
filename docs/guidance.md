@@ -78,6 +78,8 @@ source selection.
   - `navigation/wind_estimator_rls.py` (`RlsWindEstimator`)
 - Guidance:
   - `guidance/t_approach.py` (`TApproachGuidance`)
+  - `guidance/t_approach_2.py` (`TApproachGuidance2`)
+  - `guidance/timed_heading_sequence.py` (`TimedHeadingSequenceGuidance`)
 - Control:
   - `control/pid_heading.py` (`PidHeadingController`)
 - Adapters:
@@ -110,6 +112,28 @@ Wind estimation belongs to the navigation layer.
 By default, the closed-loop runner keeps plant wind as scenario truth while GnC
 uses estimated wind internally. This preserves realistic estimation error during
 evaluation.
+
+## Metrics and Benchmarking
+
+Recent additions provide machine-readable GnC metrics and benchmarking helpers:
+
+- `minos.gnc.metrics`
+  - `compute_run_metrics`
+  - `aggregate_metrics`
+- `minos.gnc.benchmark`
+  - `ScenarioConfig`
+  - `run_benchmark_scenario`
+  - `run_benchmark_suite`
+
+These are intended for fair A/B comparison across guidance/controller variants
+using the same plant and scenario definitions.
+
+Snapshot logs now also carry GnC telemetry useful for analysis:
+
+- mission phase,
+- flare command,
+- estimated wind,
+- raw vs clipped flap commands.
 
 ## What To Change For New GnC Experiments
 
